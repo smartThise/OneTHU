@@ -6,7 +6,7 @@ Current user and developer guides alongside generated API signatures reflect the
 
 | Document | Status |
 |---|---|
-| [adr/2026-10-29-optional-cli-services.md](../adr/2026-10-29-optional-cli-services.md) | Historical evidence |
+| [adr/2026-10-29-optional-cli-services.md](../adr/2026-10-29-optional-cli-services.md) | Architecture decision |
 | [android-release-traps.md](../android-release-traps.md) | Current reference |
 | [anim-delight-handoff.md](../anim-delight-handoff.md) | Historical evidence |
 | [api-reference.md](../api-reference.md) | Current reference |
@@ -29,19 +29,20 @@ Current user and developer guides alongside generated API signatures reflect the
 | [en/experience-modes.md](../en/experience-modes.md) | English current guide |
 | [en/getting-started.md](../en/getting-started.md) | English current guide |
 | [en/index.md](../en/index.md) | English current guide |
+| [en/license.md](../en/license.md) | English current guide |
 | [en/oh-and-xiaoda.md](../en/oh-and-xiaoda.md) | English current guide |
 | [en/oh-app-services.md](../en/oh-app-services.md) | English current guide |
 | [en/onethu-cli.md](../en/onethu-cli.md) | English current guide |
 | [en/plugin-development.md](../en/plugin-development.md) | English current guide |
 | [en/privacy-and-troubleshooting.md](../en/privacy-and-troubleshooting.md) | English current guide |
-| [en/release-0.11.1.md](../en/release-0.11.1.md) | English current guide |
-| [en/release-0.11.2.md](../en/release-0.11.2.md) | English current guide |
-| [en/release-0.11.3.md](../en/release-0.11.3.md) | English current guide |
-| [en/release-0.11.4-fix-1.md](../en/release-0.11.4-fix-1.md) | English current guide |
-| [en/release-0.11.4-fix-2.md](../en/release-0.11.4-fix-2.md) | English current guide |
-| [en/release-0.11.4-fix-3.md](../en/release-0.11.4-fix-3.md) | English current guide |
-| [en/release-0.11.4.md](../en/release-0.11.4.md) | English current guide |
-| [en/release-0.11.md](../en/release-0.11.md) | English current guide |
+| [en/release-0.11.1.md](../en/release-0.11.1.md) | Release notes |
+| [en/release-0.11.2.md](../en/release-0.11.2.md) | Release notes |
+| [en/release-0.11.3.md](../en/release-0.11.3.md) | Release notes |
+| [en/release-0.11.4-fix-1.md](../en/release-0.11.4-fix-1.md) | Release notes |
+| [en/release-0.11.4-fix-2.md](../en/release-0.11.4-fix-2.md) | Release notes |
+| [en/release-0.11.4-fix-3.md](../en/release-0.11.4-fix-3.md) | Release notes |
+| [en/release-0.11.4.md](../en/release-0.11.4.md) | Release notes |
+| [en/release-0.11.md](../en/release-0.11.md) | Release notes |
 | [en/schedule-and-sync.md](../en/schedule-and-sync.md) | English current guide |
 | [en/screenshots.md](../en/screenshots.md) | English current guide |
 | [en/sharing-and-organizations.md](../en/sharing-and-organizations.md) | English current guide |
@@ -64,12 +65,13 @@ Current user and developer guides alongside generated API signatures reflect the
 | [im-cloud/05-feishu.md](../im-cloud/05-feishu.md) | Historical evidence |
 | [im-cloud/06-telegram.md](../im-cloud/06-telegram.md) | Historical evidence |
 | [im-cloud/README.md](../im-cloud/README.md) | Historical evidence |
+| [license.md](../license.md) | Current reference |
 | [memory-cloud/01-memory-system.md](../memory-cloud/01-memory-system.md) | Historical evidence |
 | [memory-cloud/02-files-hub.md](../memory-cloud/02-files-hub.md) | Historical evidence |
 | [memory-cloud/03-sync-conflict.md](../memory-cloud/03-sync-conflict.md) | Historical evidence |
 | [memory-cloud/README.md](../memory-cloud/README.md) | Historical evidence |
 | [oh-and-xiaoda.md](../oh-and-xiaoda.md) | Current reference |
-| [oh-app-services.md](../oh-app-services.md) | Historical evidence |
+| [oh-app-services.md](../oh-app-services.md) | Current reference |
 | [onegui/00-plan.md](../onegui/00-plan.md) | Historical evidence |
 | [onegui/01-ui-inventory.md](../onegui/01-ui-inventory.md) | Historical evidence |
 | [onegui/02-style-pipeline.md](../onegui/02-style-pipeline.md) | Historical evidence |
@@ -96,7 +98,7 @@ Current user and developer guides alongside generated API signatures reflect the
 | [onegui/vault-radar-2026-10-20/README.md](../onegui/vault-radar-2026-10-20/README.md) | Historical evidence |
 | [onegui/vault-refinement-2026-10-20/README.md](../onegui/vault-refinement-2026-10-20/README.md) | Historical evidence |
 | [onegui/workbench/README.md](../onegui/workbench/README.md) | Historical evidence |
-| [onethu-cli.md](../onethu-cli.md) | Historical evidence |
+| [onethu-cli.md](../onethu-cli.md) | Current reference |
 | [plans/2026-10-17-onegui-exp.md](../plans/2026-10-17-onegui-exp.md) | Historical evidence |
 | [plans/2026-10-17-onegui-workbench.md](../plans/2026-10-17-onegui-workbench.md) | Historical evidence |
 | [plans/2026-10-17-theme-home-canvas.md](../plans/2026-10-17-theme-home-canvas.md) | Historical evidence |
@@ -161,14 +163,14 @@ Current user and developer guides alongside generated API signatures reflect the
 | [plugin-development.md](../plugin-development.md) | Current reference |
 | [privacy-and-troubleshooting.md](../privacy-and-troubleshooting.md) | Current reference |
 | [README.md](../README.md) | Current reference |
-| [release-0.11.1.md](../release-0.11.1.md) | Historical evidence |
-| [release-0.11.2.md](../release-0.11.2.md) | Historical evidence |
-| [release-0.11.3.md](../release-0.11.3.md) | Historical evidence |
-| [release-0.11.4-fix-1.md](../release-0.11.4-fix-1.md) | Historical evidence |
-| [release-0.11.4-fix-2.md](../release-0.11.4-fix-2.md) | Historical evidence |
-| [release-0.11.4-fix-3.md](../release-0.11.4-fix-3.md) | Historical evidence |
-| [release-0.11.4.md](../release-0.11.4.md) | Historical evidence |
-| [release-0.11.md](../release-0.11.md) | Current reference |
+| [release-0.11.1.md](../release-0.11.1.md) | Release notes |
+| [release-0.11.2.md](../release-0.11.2.md) | Release notes |
+| [release-0.11.3.md](../release-0.11.3.md) | Release notes |
+| [release-0.11.4-fix-1.md](../release-0.11.4-fix-1.md) | Release notes |
+| [release-0.11.4-fix-2.md](../release-0.11.4-fix-2.md) | Release notes |
+| [release-0.11.4-fix-3.md](../release-0.11.4-fix-3.md) | Release notes |
+| [release-0.11.4.md](../release-0.11.4.md) | Release notes |
+| [release-0.11.md](../release-0.11.md) | Release notes |
 | [reports/2026-10-29-fix-2-runtime-audit.md](../reports/2026-10-29-fix-2-runtime-audit.md) | Historical evidence |
 | [research/2026-10-18-mobile-drag-nfc.md](../research/2026-10-18-mobile-drag-nfc.md) | Historical evidence |
 | [research/2026-10-18-seafile-vault-capabilities.md](../research/2026-10-18-seafile-vault-capabilities.md) | Historical evidence |

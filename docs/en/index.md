@@ -31,6 +31,7 @@ Welcome to the OneTHU 0.11 documentation for users and developers. The guides be
 - [Generated API signatures](api-surface.md)
 - [OneGUI](design-language.md)
 - [Fixture capture provenance](screenshots.md)
+- [License and acknowledgments](license.md)
 - [All documents and historical status](documentation-catalog.md)
 
 [OneTHU](https://onethu.github.io/en/) · [GitHub](https://github.com/smartThise/OneTHU)
