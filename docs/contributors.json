@@ -1,23 +1,23 @@
 {
-  "ref": "6f89b1387bacbf6da90de2335c61ed39448aaee5",
-  "generatedAt": "2026-10-21T05:31:26.358154+00:00",
+  "ref": "f6e8b0b859d8a83ce7f0ff0a3809137df1e463b0",
+  "generatedAt": "2026-11-18T02:13:49.101603+00:00",
   "majorThreshold": 10000,
-  "metric": "Cumulative added source-code lines in reachable dev3 history; non-merge commits, excluding generated/vendor/locales/fixtures and non-code files. GitHub account aliases combined when resolvable. Coauthors and merge-only authors are listed without duplicated line attribution. Not a ranking of impact.",
+  "metric": "Cumulative added source-code lines across reachable official branches (main, dev3, web); non-merge commits, excluding generated/vendor/locales/fixtures and non-code files. GitHub account aliases combined when resolvable. Coauthors and merge-only authors are listed alongside commit authors. Line counts serve as a scale indicator alongside design, testing, and feedback contributions.",
   "contributors": [
     {
       "name": "smartThise",
       "github": "https://github.com/smartThise",
-      "commits": 1653,
-      "codeAdded": 260896,
-      "codeDeleted": 71305,
+      "commits": 1745,
+      "codeAdded": 314710,
+      "codeDeleted": 74797,
       "major": true
     },
     {
       "name": "xiao-dreamr",
       "github": "https://github.com/xiao-dreamr",
-      "commits": 263,
-      "codeAdded": 45038,
-      "codeDeleted": 5585,
+      "commits": 265,
+      "codeAdded": 50695,
+      "codeDeleted": 6045,
       "major": true
     },
     {

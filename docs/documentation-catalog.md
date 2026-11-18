@@ -40,6 +40,7 @@
 | [en/experience-modes.md](en/experience-modes.md) | 现行英文说明 |
 | [en/getting-started.md](en/getting-started.md) | 现行英文说明 |
 | [en/index.md](en/index.md) | 现行英文说明 |
+| [en/license.md](en/license.md) | 现行英文说明 |
 | [en/oh-and-xiaoda.md](en/oh-and-xiaoda.md) | 现行英文说明 |
 | [en/oh-app-services.md](en/oh-app-services.md) | 现行英文说明 |
 | [en/onethu-cli.md](en/onethu-cli.md) | 现行英文说明 |
@@ -76,6 +77,7 @@
 | [im-cloud/05-feishu.md](im-cloud/05-feishu.md) | 历史计划/研究/验收证据 |
 | [im-cloud/06-telegram.md](im-cloud/06-telegram.md) | 历史计划/研究/验收证据 |
 | [im-cloud/README.md](im-cloud/README.md) | 历史计划/研究/验收证据 |
+| [license.md](license.md) | 现行说明/工程参考 |
 | [memory-cloud/01-memory-system.md](memory-cloud/01-memory-system.md) | 历史计划/研究/验收证据 |
 | [memory-cloud/02-files-hub.md](memory-cloud/02-files-hub.md) | 历史计划/研究/验收证据 |
 | [memory-cloud/03-sync-conflict.md](memory-cloud/03-sync-conflict.md) | 历史计划/研究/验收证据 |

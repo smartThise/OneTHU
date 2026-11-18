@@ -4,7 +4,7 @@ import {join,relative} from 'node:path';
 const root='docs';
 function walk(dir){return readdirSync(dir,{withFileTypes:true}).flatMap(entry=>entry.name.startsWith('._')?[]:entry.isDirectory()?walk(join(dir,entry.name)):entry.name.endsWith('.md')?[relative(root,join(dir,entry.name)).replaceAll('\\','/')]:[]);}
 const current=new Set(['i18n/TRANSLATOR_GUIDE.md','i18n/GLOSSARY.md','examples/harness-skel/README.md','README.md','architecture.md','api-reference.md','api-surface.md','plugin-development.md','homework.md','external-homework.md','android-release-traps.md','dev-build.md','design-language.md','tokens-map.md','动效设计规范.md','入口映射表.md','白板组件尺寸档清单.md','developers.md','contributors.md','getting-started.md','experience-modes.md','workbench.md','sharing-and-organizations.md','schedule-and-sync.md','oh-and-xiaoda.md','privacy-and-troubleshooting.md','release-0.11.md','screenshots.md']);
-for(const path of ['onethu-cli.md','oh-app-services.md'])current.add(path);
+for(const path of ['onethu-cli.md','oh-app-services.md','license.md'])current.add(path);
 const isCurrent=path=>current.has(path)||path.startsWith('architecture/')||path.startsWith('guides/');
 function statusFor(path,en){
  const base=path.replace(/^en\//,'');

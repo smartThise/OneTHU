@@ -38,6 +38,7 @@
 - [API 参考与协议](api-reference.md) · [生成签名清单](api-surface.md)
 - [OneGUI](design-language.md)
 - [模拟素材来源](screenshots.md)
+- [许可与致谢](license.md)
 - [全部文档与历史状态](documentation-catalog.md)
 
 [OneTHU](https://onethu.github.io/) · [GitHub](https://github.com/smartThise/OneTHU)
