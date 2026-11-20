@@ -132,6 +132,12 @@ console.log("\n[1] LaTeX 定界扫描与逐段降级");
     "跨标签的 \\(…\\) 仍能配对渲染",
   );
   eq(yb.renderLatexInHtml("<p>证：$$\\frac{a}{b}$$ 完</p>", fake), "<p>证：[D:\\frac{a}{b}] 完</p>", "显示 $$…$$ 走 displayMode");
+  // 雨课堂 UEditor 会把多行 array 的换行/缩进拆成 <br>/<span>；显示公式也必须跨标签配对。
+  {
+    const nested = "\\begin{array}{c}{ ( 1 ) \\left\\{ \\begin{array}{l}{ 2 x _ { 1 } = 6 , } \\\\ { 9 x _ { 1 } = 2 ; } \\end{array} \\right. } \\\\ \\end{array}";
+    const cross = yb.renderLatexInHtml("<p>$$<span>" + nested.replace(/\\/g, "<br>") + "</span>$$$</p>", fake);
+    ok(cross.startsWith("<p>[D:") && !cross.includes("\\begin{array}") && !cross.trim().endsWith("$"), "跨 <br>/<span> 的 $$…$$ 也能配对（无残留 TeX/孤立 $）");
+  }
 
   // 防误伤：价格语义不开渲染；内侧空白不闭合
   eq(yb.renderLatexInHtml("<p>价格 $5 与 $6 不等</p>", fake), "<p>价格 $5 与 $6 不等</p>", "「$5 与 $6」不误判（关界内侧空白）");

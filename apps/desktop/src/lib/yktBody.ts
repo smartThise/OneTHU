@@ -304,7 +304,15 @@ function renderSpanningTex(html: string, render: LatexRender): string {
   // 先把标签整体 stash，避免属性里的 `$t$` 被当成公式；配对完成后原样还原。
   const tags: string[] = [];
   const stash = html.replace(/<[^>]*>/g, (tag) => `\u0001${tags.push(tag) - 1}\u0001`);
-  const stashed = stash.replace(/(?<!\$)\$(?!\$)([\s\S]*?)\$(?!\$)/g, (whole, body: string) => {
+  /* 显示公式 $$…$$ 同样可能被 UEditor 的 <span>/<br> 拆到多个节点；必须先做
+     一轮跨标签的 $$ 配对，再处理单 $。三美元结尾按「$$ 关闭 + 一个笔误的 $」
+     吞掉，避免公式后面残留一个孤立 $。 */
+  const displayStashed = stash.replace(/\$\$([\s\S]*?)\$\$(?:\$)?/g, (whole, body: string) => {
+    const inner = texBody(body.replace(/\u0001\d+\u0001/g, " "));
+    if (!inner) return whole;
+    return safeRender(render, inner, true) ?? whole;
+  });
+  const stashed = displayStashed.replace(/(?<!\$)\$(?!\$)([\s\S]*?)\$(?!\$)/g, (whole, body: string) => {
     const inner = texBody(body.replace(/\u0001\d+\u0001/g, " "));
     if (!inner) return whole;
     /* 跨标签扫描最容易误吃价格区间；这里始终要求公式形态，不只看边界空白。 */
