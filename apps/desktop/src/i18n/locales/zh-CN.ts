@@ -3925,6 +3925,8 @@ const locale = {
     "pages.info.dormtab.a0d22c766730": "家园网 myhome.tsinghua.edu.cn · 宿舍绑定房间",
     "pages.info.dormtab.ab8cff9a597a": "电费",
     "pages.info.dormtab.b09dff2cb1cb": "如：紫荆 1 号楼 301A",
+    "pages.info.dormtab.b55720d8da5e": "近一月充值",
+    "pages.info.dormtab.f940c740fd14": "充值笔数",
     "pages.info.dormtab.bb8c939d0fcd": "订水",
     "pages.info.dormtab.bcd6771e08ec": "查询",
     "pages.info.dormtab.c3fc6114b55c": "水站发票/标签上的用户编号",

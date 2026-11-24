@@ -9,7 +9,7 @@ import { Select } from "@onethu/gui";
  * - 订水：thu-info-app network/water.ts 移植（清华水站 dingshui.bjqzhd.com 公开接口），
  *   订水编号查询联系人/地址后提交；dorm.ts 内无订水端点，端点以 RN 端 network/water.ts 为准。
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ElePayRecord, EleRemainder } from "@onethu/core";
 import { WATER_BRANDS, getWaterUserInformation, isAuthError, submitWaterOrder } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
@@ -139,6 +139,19 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
     else if (Date.now() - cached.at > ELEC_TTL) void loadRecords(true);
   }, [status, loadRecords]);
 
+  /** 左卡指标：近 30 天充值金额（从现有缴费流水派生；用电量接口未提供，不伪造）。 */
+  const recentRecharge = useMemo(() => {
+    const from = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    let sum = 0;
+    for (const r of records ?? []) {
+      const at = Date.parse(r.time.replace(/-/g, "/"));
+      if (!Number.isFinite(at) || at < from) continue;
+      const amount = Number(String(r.value).replace(/[^\d.-]/g, ""));
+      if (Number.isFinite(amount)) sum += Math.abs(amount);
+    }
+    return sum;
+  }, [records, uiLocale]);
+
   /* ---------------- 订水（公开接口） ---------------- */
   const [waterId, setWaterId] = useState("");
   const [contact, setContact] = useState("");
@@ -200,76 +213,93 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
 
   return (
     <>
-      <div data-sec="ele">
-        <SectionHead title={i18n("pages.info.dormtab.ab8cff9a597a")} aside={i18n("pages.info.dormtab.a0d22c766730")} />
-      </div>
-      {balanceState === "error" ? (
-        <ErrorNote
-          text={balanceError ?? ""}
-          onRetry={() => {
-            balanceRecover.current = 0;
-            void loadBalance();
-          }}
-        />
-      ) : balanceState === "loading" && remainder === null ? (
-        <SkeletonRows rows={1} />
-      ) : remainder ? (
-        <Card className="elec-balance-card">
-          <div className="row">
-            <div className="row-main">
-              <div className="row-title">{i18n("pages.info.dormtab.90f23f891fd1")}</div>
-              <div className="row-sub">
-                {remainder.updateTime
-                  ? i18n("pages.info.dormtab.6f97390b28f3", { time: String(remainder.updateTime) })
-                  : i18n("pages.info.dormtab.a0d22c766730")}
-              </div>
-            </div>
-            <div className="row-amount">
-              <b>{Number.isFinite(remainder.remainder) ? remainder.remainder.toFixed(2) : "–"}</b>
-              <span className="elec-unit">{i18n("pages.info.dormtab.e24a9725df82")}</span>
-            </div>
-          </div>
-        </Card>
-      ) : (
-        <Card>
-          <Empty text={i18n("pages.info.dormtab.5a62d9779585")} />
-        </Card>
-      )}
-      <SectionHead title={i18n("pages.info.dormtab.3da69f3bb5a2")} aside={i18n("pages.info.dormtab.337269e5b07c")} />
-      {recState === "error" ? (
-        <ErrorNote
-          text={recError ?? ""}
-          onRetry={() => {
-            elecRecover.current = 0;
-            void loadRecords();
-          }}
-        />
-      ) : null}
-      {recState === "loading" && records === null ? (
-        <SkeletonRows rows={2} />
-      ) : records && records.length > 0 ? (
-        <Card className="list">
-          {records.map((r, i) => (
-            <div className="row" key={`${r.id}-${i}`}>
-              <span className={STATUS_CHIP[r.status] ?? "chip chip-gray"}>{r.status || i18n("pages.info.dormtab.658c536de644")}</span>
-              <div className="row-main">
-                <div className="row-title">{r.name || i18n("pages.info.dormtab.f06a3f64f717")}</div>
-                <div className="row-sub">
-                  {r.time || "–"}
-                  {r.channel ? ` · ${r.channel}` : ""}
+      <div className="dorm-elec card-two-col" data-sec="ele">
+        <div className="card-col-main">
+          <SectionHead title={i18n("pages.info.dormtab.ab8cff9a597a")} aside={i18n("pages.info.dormtab.a0d22c766730")} />
+          {balanceState === "error" ? (
+            <ErrorNote
+              text={balanceError ?? ""}
+              onRetry={() => {
+                balanceRecover.current = 0;
+                void loadBalance();
+              }}
+            />
+          ) : balanceState === "loading" && remainder === null ? (
+            <SkeletonRows rows={1} />
+          ) : remainder ? (
+            <>
+              <Card className="elec-hero">
+                <div className="elec-hero-label">{i18n("pages.info.dormtab.90f23f891fd1")}</div>
+                <div className="elec-hero-value">
+                  {Number.isFinite(remainder.remainder) ? remainder.remainder.toFixed(2) : "–"}
+                  <span className="elec-unit">{i18n("pages.info.dormtab.e24a9725df82")}</span>
                 </div>
+                <div className="elec-hero-meta">
+                  {remainder.updateTime
+                    ? i18n("pages.info.dormtab.6f97390b28f3", { time: String(remainder.updateTime) })
+                    : i18n("pages.info.dormtab.a0d22c766730")}
+                </div>
+              </Card>
+              <div className="elec-metrics">
+                <Card className="stat-card">
+                  <div>
+                    <div className="stat-num">¥{recentRecharge.toFixed(2)}</div>
+                    <div className="stat-label">{i18n("pages.info.dormtab.b55720d8da5e")}</div>
+                  </div>
+                </Card>
+                <Card className="stat-card">
+                  <div>
+                    <div className="stat-num">{records?.length ?? "—"}</div>
+                    <div className="stat-label">{i18n("pages.info.dormtab.f940c740fd14")}</div>
+                  </div>
+                </Card>
               </div>
-              <div className="row-amount">
-                <b>{r.value || "–"}</b>
-              </div>
-            </div>
-          ))}
-        </Card>
-      ) : (
-        <Card>
-          <Empty text={i18n("pages.info.dormtab.d962ed9d270e")} />
-        </Card>
-      )}
+            </>
+          ) : (
+            <Card>
+              <Empty text={i18n("pages.info.dormtab.5a62d9779585")} />
+            </Card>
+          )}
+        </div>
+
+        <div className="card-col-side">
+          <SectionHead title={i18n("pages.info.dormtab.3da69f3bb5a2")} aside={i18n("pages.info.dormtab.337269e5b07c")} />
+          {recState === "error" ? (
+            <ErrorNote
+              text={recError ?? ""}
+              onRetry={() => {
+                elecRecover.current = 0;
+                void loadRecords();
+              }}
+            />
+          ) : null}
+          {recState === "loading" && records === null ? (
+            <SkeletonRows rows={2} />
+          ) : records && records.length > 0 ? (
+            <Card className="list">
+              {records.map((r, i) => (
+                <div className="row" key={`${r.id}-${i}`}>
+                  <span className={STATUS_CHIP[r.status] ?? "chip chip-gray"}>{r.status || i18n("pages.info.dormtab.658c536de644")}</span>
+                  <div className="row-main">
+                    <div className="row-title">{r.name || i18n("pages.info.dormtab.f06a3f64f717")}</div>
+                    <div className="row-sub">
+                      {r.time || "–"}
+                      {r.channel ? ` · ${r.channel}` : ""}
+                    </div>
+                  </div>
+                  <div className="row-amount">
+                    <b>{r.value || "–"}</b>
+                  </div>
+                </div>
+              ))}
+            </Card>
+          ) : (
+            <Card>
+              <Empty text={i18n("pages.info.dormtab.d962ed9d270e")} />
+            </Card>
+          )}
+        </div>
+      </div>
 
       <div data-sec="water">
         <SectionHead title={i18n("pages.info.dormtab.bb8c939d0fcd")} aside={i18n("pages.info.dormtab.8d6ebc4e3453")} />

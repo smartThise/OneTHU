@@ -535,7 +535,7 @@
   color: var(--text-2);
 }
 
-.field input {
+.field input:not(.og-input-el) {
   height: 38px;
   padding: 0 12px;
   border: 1px solid var(--border); /* 输入类保留描边：§3「描边属于输入语言」 */
@@ -546,13 +546,13 @@
   transition: border-color 100ms ease, background 100ms ease, box-shadow 100ms ease;
 }
 
-.field > input,
+.field > input:not(.og-input-el),
 .field > select {
   width: 100%;
   box-sizing: border-box;
 }
 
-.field input:focus {
+.field input:not(.og-input-el):focus {
   outline: none;
   background: var(--md-sys-color-surface-container-lowest);
   border-color: var(--accent);
@@ -6052,14 +6052,14 @@ html.is-sheet-open, html.is-sheet-open body { overflow: hidden; }
 .chip-btn:hover { background: linear-gradient(180deg, var(--glass-tint-top-hover), var(--glass-tint-bottom-hover)); }
 
 /* ---- 输入类 = 玻璃场（tint + hairline；聚焦 rim 转主题色）---- */
-.field input,
+.field input:not(.og-input-el),
 .field select,
 .field textarea {
   background: var(--og-surface-1); /* 实色面（原 30% surface-container 幽灵填充 = 用户点名「透明选择框」的真身） */
   border-color: var(--glass-border);
   box-shadow: inset 0 1px 0 var(--glass-rim-bottom);
 }
-.field input:focus,
+.field input:not(.og-input-el):focus,
 .field select:focus, .field textarea:focus {
   border-color: var(--accent);
   box-shadow: var(--md-sys-focus-ring), inset 0 1px 0 var(--glass-rim-top);
@@ -6552,3 +6552,38 @@ html:root .free-folder.is-list .free-folder-ball { width: 28px; height: 28px; }
 
 /* 样式选择层内的轮播需要确定高度；否则百分比高度在 auto 容器里会塌成 0。 */
 .style-picker .widget-size-picker { height: 260px; }
+
+/* 宿舍电费：校园卡余额式左右分栏；左主卡突出余额，右侧滚充值流水 */
+.dorm-elec { align-items: start; }
+.dorm-elec .card-col-main,
+.dorm-elec .card-col-side { min-width: 0; }
+.elec-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 24px;
+}
+.elec-hero-label { font-size: var(--text-sm); color: var(--text-2); }
+.elec-hero-value {
+  font-size: 40px;
+  line-height: 1.05;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+.elec-unit { margin-left: 8px; font-size: var(--text-sm); font-weight: 500; color: var(--text-3); letter-spacing: 0; }
+.elec-hero-meta { font-size: var(--text-xs); color: var(--text-3); }
+.elec-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--og-space-3, 8px);
+  margin-top: var(--og-space-3, 8px);
+}
+.elec-metrics .stat-card { min-height: 62px; }
+.elec-metrics .stat-num { font-size: var(--text-title, 22px); line-height: 1.2; }
+.elec-metrics .stat-label { margin-top: 2px; }
+@media (max-width: 720px) {
+  .elec-hero { padding: 16px 18px; }
+  .elec-hero-value { font-size: 34px; }
+}

@@ -3925,6 +3925,8 @@ const locale = {
     "pages.info.dormtab.a0d22c766730": "MyHome myhome.tsinghua.edu.cn · dorm-bound room",
     "pages.info.dormtab.ab8cff9a597a": "Electricity",
     "pages.info.dormtab.b09dff2cb1cb": "e.g. Zijing Building 1, 301A",
+    "pages.info.dormtab.b55720d8da5e": "Recharged · 30d",
+    "pages.info.dormtab.f940c740fd14": "Recharge count",
     "pages.info.dormtab.bb8c939d0fcd": "Order water",
     "pages.info.dormtab.bcd6771e08ec": "Look up",
     "pages.info.dormtab.c3fc6114b55c": "The user number printed on the water station's invoice or label",
