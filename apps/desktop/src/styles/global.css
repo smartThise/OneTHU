@@ -6574,3 +6574,54 @@ html:root .washer-card .washer-name {
   font-weight: 600;
 }
 .washer-tab { padding-bottom: calc(112px + var(--og-safe-bottom, 0px)); }
+
+/* 电费充值金额框：智能取色的深色模式下 OG 默认 outline 可能被中和成透明，
+   这里给输入壳一个可见的 content-2 混合描边（不是写死颜色，跟随主题）。 */
+.elec-rch-amount .og-input {
+  background: var(--og-surface-2) !important;
+  border: 1px solid color-mix(in srgb, var(--og-content-2) 48%, transparent) !important;
+}
+.elec-rch-amount .og-input.is-focused {
+  border-color: var(--og-accent) !important;
+  box-shadow: var(--og-ring);
+}
+
+/* 洗衣机卡：icon 行只放 icon/名称/状态/收藏；位置与更新时间放下一行，横向占满。 */
+html:root .washer-card .og-card-body {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+html:root .washer-card .washer-type-icon {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+html:root .washer-card .washer-main { display: contents; }
+html:root .washer-card .washer-name {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: var(--text-md, 16px);
+  line-height: 22px;
+  font-weight: 600;
+}
+html:root .washer-card .washer-sub {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 0;
+}
+html:root .washer-card .og-card-body > .chip {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+html:root .washer-card .og-card-body > .collect-star {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
+}

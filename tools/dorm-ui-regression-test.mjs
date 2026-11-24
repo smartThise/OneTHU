@@ -26,6 +26,9 @@ ok(electric.includes("EleRechargeDialog") && electric.includes("getEleRechargePa
 ok(electric.includes("pages.info.dormtab.c7aab75d07c4") && !electric.includes("d189e0a2a1c5"), "充值弹窗显示自定义金额，且不再误用「提交订水」文案");
 ok(css.includes(".stats.stats-hero") && css.includes(".card-hero"), "电费复用校园卡 stats-hero/card-hero 样式");
 ok(css.includes(".field input:not(.og-input-el)") && css.includes(".field > input:not(.og-input-el)"), "OG 内部 input 不再套第二层边框");
+ok(css.includes(".elec-rch-amount .og-input") && css.includes("color-mix(in srgb, var(--og-content-2)"), "充值金额框在智能深色下仍有可见描边");
+ok(css.includes(".washer-card .washer-main { display: contents; }"), "洗衣机图标行只放名称/状态，小字另起一行");
+ok(css.includes(".washer-tab { padding-bottom") || css.includes(".washer-tab { padding-bottom"), "洗衣机底部有滚动余量");
 ok(!/^\.field input \{$/m.test(css), "没有遗留裸 .field input 规则");
 ok(zh.includes('"pages.info.dormtab.b55720d8da5e": "近一月充值"') && en.includes("Recharged · 30d"), "指标文案已国际化");
 ok(onboarding.includes('"elec", "water"'), "onboarding 栏目清单已迁移");
