@@ -157,7 +157,7 @@ export function ElectricityTab(): ReactElement {
           ) : remainder ? (
             <>
               <Card className="elec-hero">
-                <div className="elec-hero-label">{i18n("pages.info.dormtab.90f23f891fd1")}</div>
+                <div className="elec-hero-label"><span className="elec-hero-bolt" aria-hidden="true">⚡</span>{i18n("pages.info.dormtab.90f23f891fd1")}</div>
                 <div className="elec-hero-value">
                   {Number.isFinite(remainder.remainder) ? remainder.remainder.toFixed(2) : "–"}
                   <span className="elec-unit">{i18n("pages.info.dormtab.e24a9725df82")}</span>

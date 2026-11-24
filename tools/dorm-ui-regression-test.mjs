@@ -18,6 +18,7 @@ ok(life.includes('<ElectricityTab />') && life.includes('<WaterTab />'), "两个
 ok(life.includes('normalizeLifeTab') && life.includes('migrateLifeLayout'), "旧 dorm 布局/深链自动迁移");
 ok(electric.includes('className="dorm-elec card-two-col"'), "电费使用左右分栏容器");
 ok(electric.includes('className="elec-hero"') && electric.includes('className="elec-metrics"'), "左侧突出余额 + 指标");
+ok(electric.includes('elec-hero-bolt') && electric.includes("⚡"), "余额卡使用 ⚡ 电量图标");
 ok(electric.includes('className="card-col-side"') && electric.includes("ListWindow fill"), "右侧充值记录使用定长 ListWindow");
 ok(electric.includes("recentRecharge") && water.includes('className="dorm-water-card"'), "指标与订水独立组件");
 ok(css.includes(".elec-hero-value") && css.includes(".elec-metrics"), "电费分栏样式存在");
