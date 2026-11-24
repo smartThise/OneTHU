@@ -6587,3 +6587,7 @@ html:root .free-folder.is-list .free-folder-ball { width: 28px; height: 28px; }
   .elec-hero { padding: 16px 18px; }
   .elec-hero-value { font-size: 34px; }
 }
+
+/* 订水卡：padding 必须加在卡片自身，不能用 <Card style> 外层包一层——
+   外层 div 的 padding 会把卡片内容/背景整体缩窄，与上方电费卡左右错位。 */
+.dorm-water-card { padding: 18px; }

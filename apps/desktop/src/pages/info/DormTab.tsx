@@ -304,7 +304,7 @@ export function DormTab({ deepSection }: { deepSection?: "ele" | "water" } = {})
       <div data-sec="water">
         <SectionHead title={i18n("pages.info.dormtab.bb8c939d0fcd")} aside={i18n("pages.info.dormtab.8d6ebc4e3453")} />
       </div>
-      <Card style={{ padding: 18 }}>
+      <Card className="dorm-water-card">
         <div className="field">
           <label htmlFor="water-id">{i18n("pages.info.dormtab.fbfad2e4053e")}</label>
           <div style={{ display: "flex", gap: 8 }}>
