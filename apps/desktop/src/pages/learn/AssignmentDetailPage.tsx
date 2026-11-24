@@ -15,6 +15,7 @@ import { openFilePreview } from "../../components/FilePreview.js";
 import { RichEditor } from "../../components/RichEditor.js";
 import { useApp } from "../../state/context.js";
 import { invalidateLearnCache, useLearnData } from "../../state/data.js";
+import { withLearnRecovery } from "../../lib/reload.js";
 import { BackButton, RichContent, fmtDateTime, gradeLabel, timeLeft } from "./shared.js";
 import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
@@ -80,9 +81,9 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
       setDescState("skip");
       return;
     }
+    const baseId = h.baseId;
     setDescState("loading");
-    learn
-      .getHomeworkDetail(h.baseId)
+    withLearnRecovery(() => learn.getHomeworkDetail(baseId))
       .then((d) => {
         setDesc(d.description);
         setDescState("ok");
@@ -97,8 +98,7 @@ export function AssignmentDetailPage({ courseId: courseIdProp, itemId: itemIdPro
   useEffect(() => {
     if (!h || pageState !== "idle") return;
     setPageState("loading");
-    learn
-      .getHomeworkPageDetail(courseId, h.id)
+    withLearnRecovery(() => learn.getHomeworkPageDetail(courseId, h.id))
       .then((d) => {
         setPage(d);
         setPageState("ok");

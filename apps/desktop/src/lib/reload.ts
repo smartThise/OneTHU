@@ -12,6 +12,7 @@
  */
 
 import { emitAuthRecovered } from "./authRecovery.js";
+import { isSessionExpiredError } from "./sessionErrors.js";
 import { isSignedOut } from "./sessionLifecycle.js";
 
 /** scope 级原地恢复：softRelogin（WebVPN 全链透明重建，CampusSession 内单飞，
@@ -116,6 +117,43 @@ export async function recoverCampusSession(scope: "learn" | "dorm"): Promise<boo
     return true;
   } catch {
     return false;
+  }
+}
+
+/** 页面/详情「重试」的统一学习会话恢复路径。与 useLearnData.retry 同源：
+ *  先 lib 主会话 + learn 漫游，再尝试「记住密码」完整登录；返回 true 表示可重试。 */
+let learnRetryInflight: Promise<boolean> | null = null;
+
+export function recoverLearnSessionForRetry(): Promise<boolean> {
+  /* 详情页常同时有「说明 + 附件页」两条懒加载；并发失登只跑一条恢复链，
+     否则会重复漫游/重复登录，反而把新会话互相顶掉。 */
+  if (learnRetryInflight) return learnRetryInflight;
+  learnRetryInflight = (async (): Promise<boolean> => {
+    let ok = await recoverCampusSession("learn").catch(() => false);
+    if (!ok) {
+      const { trySilentRelogin } = await import("./clients.js");
+      const silent = await trySilentRelogin().catch(() => ({ ok: false as const }));
+      if (silent.ok) ok = await ensureLearnSession().catch(() => false);
+    }
+    return ok;
+  })().finally(() => {
+    learnRetryInflight = null;
+  });
+  return learnRetryInflight;
+}
+
+/**
+ * 课程详情/作业/公告等**旁路 learn 请求**的统一恢复包装：
+ * 遇到会话类错误先按「重试」路径自动恢复 + 重跑一次，仍失败才把错误交给页面弹横幅。
+ * 非会话错误（网络/解析）原样抛出，不触发无谓登录。
+ */
+export async function withLearnRecovery<T>(work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (!isSessionExpiredError(error)) throw error;
+    if (!(await recoverLearnSessionForRetry())) throw error;
+    return await work();
   }
 }
 

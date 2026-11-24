@@ -19,6 +19,7 @@ import { explainNetworkError } from "../../lib/transport.js";
 import { openFilePreview } from "../../components/FilePreview.js";
 import { useApp } from "../../state/context.js";
 import { useLearnData } from "../../state/data.js";
+import { withLearnRecovery } from "../../lib/reload.js";
 import { BackButton, RichContent, fmtDateTime } from "./shared.js";
 import { useLearnNavSemester } from "./shared.js";
 import { openExternal } from "../info/openExternal.js";
@@ -140,8 +141,7 @@ export function NoticeDetailPage() {
     // 外部公告没有网络学堂附件区（正文走雨课堂链路），不进这条流程
     if (!n || isExt || attState !== "idle") return;
     setAttState("loading");
-    learn
-      .getNotificationPageDetail(courseId, n.id, n.attachmentName)
+    withLearnRecovery(() => learn.getNotificationPageDetail(courseId, n.id, n.attachmentName))
       .then((d) => {
         setAtt(d.attachment ?? null);
         setAttState("ok");
