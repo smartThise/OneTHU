@@ -3,6 +3,8 @@ import { t as i18n, useLocale as useUiLocale } from "../../i18n/index.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isAuthError, type ElePayRecord, type EleRemainder } from "@onethu/core";
 import { Card, Empty, ErrorNote, ListWindow, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import { Btn } from "@onethu/gui";
+import { IconBolt, IconCard, IconRefresh } from "../../components/Icons.js";
 import { info, logLine } from "../../lib/clients.js";
 import { explainNetworkError } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
@@ -156,33 +158,41 @@ export function ElectricityTab(): ReactElement {
             <SkeletonRows rows={1} />
           ) : remainder ? (
             <>
-              <Card className="elec-hero">
-                <div className="elec-hero-label"><span className="elec-hero-bolt" aria-hidden="true">⚡</span>{i18n("pages.info.dormtab.90f23f891fd1")}</div>
-                <div className="elec-hero-value">
-                  {Number.isFinite(remainder.remainder) ? remainder.remainder.toFixed(2) : "–"}
-                  <span className="elec-unit">{i18n("pages.info.dormtab.e24a9725df82")}</span>
-                </div>
-                <div className="elec-hero-meta">
-                  {remainder.updateTime
-                    ? i18n("pages.info.dormtab.6f97390b28f3", { time: String(remainder.updateTime) })
-                    : i18n("pages.info.dormtab.a0d22c766730")}
-                </div>
-              </Card>
-              <div className="elec-metrics">
+              <div className="stats stats-hero">
+                <Card className="card-hero">
+                  <div className="card-hero-main">
+                    <span className="stat-icon amber"><IconBolt width={17} height={17} /></span>
+                    <div>
+                      <div className="card-hero-amount">
+                        {Number.isFinite(remainder.remainder) ? remainder.remainder.toFixed(2) : "–"}
+                        <span className="elec-unit">{i18n("pages.info.dormtab.e24a9725df82")}</span>
+                      </div>
+                      <div className="stat-label">{i18n("pages.info.dormtab.90f23f891fd1")}</div>
+                    </div>
+                    <Btn variant="outline" onClick={() => { void loadBalance(); void loadRecords(); }}>{i18n("pages.info.cardtab.aee887434131")}</Btn>
+                  </div>
+                  <div className="card-hero-meta">
+                    <span>{remainder.updateTime
+                      ? i18n("pages.info.dormtab.6f97390b28f3", { time: String(remainder.updateTime) })
+                      : i18n("pages.info.dormtab.a0d22c766730")}</span>
+                  </div>
+                </Card>
                 <Card className="stat-card">
+                  <span className="stat-icon amber"><IconCard width={17} height={17} /></span>
                   <div>
                     <div className="stat-num">¥{recentRecharge.toFixed(2)}</div>
                     <div className="stat-label">{i18n("pages.info.dormtab.b55720d8da5e")}</div>
                   </div>
                 </Card>
                 <Card className="stat-card">
+                  <span className="stat-icon green"><IconRefresh width={17} height={17} /></span>
                   <div>
                     <div className="stat-num">{records?.length ?? "—"}</div>
                     <div className="stat-label">{i18n("pages.info.dormtab.f940c740fd14")}</div>
                   </div>
                 </Card>
               </div>
-            </>
+             </>
           ) : (
             <Card>
               <Empty text={i18n("pages.info.dormtab.5a62d9779585")} />

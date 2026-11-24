@@ -281,6 +281,13 @@ export const IconCard = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUi
   </svg>
 )); };
 
+/** 电量/闪电（描边风格；余额卡与指标共用） */
+export const IconBolt = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
+  <svg {...base(p)}>
+    <path d="M13.5 2.5 5 13.5h5.2L9 21.5l8.5-11h-5.1l1.1-8Z" />
+  </svg>
+)); };
+
 export const IconExternal = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
   <svg {...base(p)}>
     <path d="M13.5 5H19v5.5M19 5l-8 8" />

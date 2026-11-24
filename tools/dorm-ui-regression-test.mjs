@@ -17,11 +17,11 @@ ok(life.includes('{ id: "elec"') && life.includes('{ id: "water"'), "生活页�
 ok(life.includes('<ElectricityTab />') && life.includes('<WaterTab />'), "两个 tab 各自挂载独立组件");
 ok(life.includes('normalizeLifeTab') && life.includes('migrateLifeLayout'), "旧 dorm 布局/深链自动迁移");
 ok(electric.includes('className="dorm-elec card-two-col"'), "电费使用左右分栏容器");
-ok(electric.includes('className="elec-hero"') && electric.includes('className="elec-metrics"'), "左侧突出余额 + 指标");
-ok(electric.includes('elec-hero-bolt') && electric.includes("⚡"), "余额卡使用 ⚡ 电量图标");
+ok(electric.includes('className="stats stats-hero"') && electric.includes('className="card-hero"') && electric.includes('className="stat-card"'), "左侧余额卡使用校园卡 stats-hero 布局");
+ok(electric.includes("IconBolt") && !electric.includes("⚡"), "余额卡使用描边 IconBolt，而非 emoji");
 ok(electric.includes('className="card-col-side"') && electric.includes("ListWindow fill"), "右侧充值记录使用定长 ListWindow");
 ok(electric.includes("recentRecharge") && water.includes('className="dorm-water-card"'), "指标与订水独立组件");
-ok(css.includes(".elec-hero-value") && css.includes(".elec-metrics"), "电费分栏样式存在");
+ok(css.includes(".stats.stats-hero") && css.includes(".card-hero"), "电费复用校园卡 stats-hero/card-hero 样式");
 ok(css.includes(".field input:not(.og-input-el)") && css.includes(".field > input:not(.og-input-el)"), "OG 内部 input 不再套第二层边框");
 ok(!/^\.field input \{$/m.test(css), "没有遗留裸 .field input 规则");
 ok(zh.includes('"pages.info.dormtab.b55720d8da5e": "近一月充值"') && en.includes("Recharged · 30d"), "指标文案已国际化");

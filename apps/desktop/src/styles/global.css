@@ -6557,50 +6557,5 @@ html:root .free-folder.is-list .free-folder-ball { width: 28px; height: 28px; }
 .dorm-elec { align-items: start; }
 .dorm-elec .card-col-main,
 .dorm-elec .card-col-side { min-width: 0; }
-.elec-hero {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 20px 24px;
-}
-.elec-hero-label { font-size: var(--text-sm); color: var(--text-2); }
-.elec-hero-value {
-  font-size: 40px;
-  line-height: 1.05;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-1);
-}
 .elec-unit { margin-left: 8px; font-size: var(--text-sm); font-weight: 500; color: var(--text-3); letter-spacing: 0; }
-.elec-hero-meta { font-size: var(--text-xs); color: var(--text-3); }
-.elec-metrics {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--og-space-3, 8px);
-  margin-top: var(--og-space-3, 8px);
-}
-.elec-metrics .stat-card { min-height: 62px; }
-.elec-metrics .stat-num { font-size: var(--text-title, 22px); line-height: 1.2; }
-.elec-metrics .stat-label { margin-top: 2px; }
-@media (max-width: 720px) {
-  .elec-hero { padding: 16px 18px; }
-  .elec-hero-value { font-size: 34px; }
-}
-
-/* 订水卡：padding 必须加在卡片自身，不能用 <Card style> 外层包一层——
-   外层 div 的 padding 会把卡片内容/背景整体缩窄，与上方电费卡左右错位。 */
 .dorm-water-card { padding: 18px; }
-.elec-hero-bolt {
-  display: inline-grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  margin-right: 8px;
-  border-radius: 8px;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 15px;
-  line-height: 1;
-  vertical-align: -5px;
-}
