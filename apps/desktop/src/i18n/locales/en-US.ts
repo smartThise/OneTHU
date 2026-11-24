@@ -7105,6 +7105,7 @@ const locale = {
     "state.navigation.37d169b450b9": "Cards · Friends · Organizations",
     "state.navigation.38c1262f3fc9": "Dorm electricity",
     "state.navigation.39bd4d7ba57c": "Browse campus news and notices",
+    "state.navigation.bb8c939d0fcd": "Water",
     "state.navigation.3a74de9a9014": "Dorm",
     "state.navigation.41d497d6e07e": "Hygiene score",
     "state.navigation.462b362a41da": "View programming assignments and due dates",

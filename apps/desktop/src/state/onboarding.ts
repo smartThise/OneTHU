@@ -130,7 +130,7 @@ const ALL_PAGES = [
 ];
 const ALL_TABS = {
   info: ["report", "fitness", "exams", "evaluation", "calendar", "news", "profile", "courseinfo"],
-  life: ["dorm", "washer", "hygiene", "card", "invoice", "payroll", "gradincome", "network"],
+  life: ["elec", "water", "washer", "hygiene", "card", "invoice", "payroll", "gradincome", "network"],
 };
 
 export const PRESETS: Preset[] = [
@@ -147,7 +147,7 @@ export const PRESETS: Preset[] = [
     get label() { return i18n("state.onboarding.2e67474d8dad"); },
     get hint() { return i18n("state.onboarding.1052251daaf7"); },
     pages: ["homepage", "learn", "info", "life", "thos"],
-    tabs: { info: ["report", "exams", "profile"], life: ["card", "dorm", "washer"] },
+    tabs: { info: ["report", "exams", "profile"], life: ["card", "elec", "water", "washer"] },
     cards: ["learn"],
   },
   {
@@ -155,7 +155,7 @@ export const PRESETS: Preset[] = [
     get label() { return i18n("state.onboarding.257c80cc4f44"); },
     get hint() { return i18n("state.onboarding.42803ef36875"); },
     pages: ["homepage", "schedule", "reserve", "life", "thos"],
-    tabs: { info: ["calendar"], life: ["dorm", "washer", "hygiene", "card"] },
+    tabs: { info: ["calendar"], life: ["elec", "water", "washer", "hygiene", "card"] },
     cards: ["schedule", "life"],
   },
   {

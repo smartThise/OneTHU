@@ -109,7 +109,7 @@ export interface LearnNav {
    *  各页保持原默认（info=成绩 / life=宿舍 / reserve=图书馆座位）。
    *  reserveTab 的 "lib"/"room"/"classroom"/"sports" 分别对应 ReservePage 页内 library/libroom/classroom/sports 栏。 */
   infoTab?: "report" | "fitness" | "exams" | "evaluation" | "calendar" | "news" | "profile" | "courseinfo";
-  lifeTab?: "dorm" | "washer" | "hygiene" | "card" | "invoice" | "payroll" | "gradincome" | "network";
+  lifeTab?: "elec" | "water" | "washer" | "hygiene" | "card" | "invoice" | "payroll" | "gradincome" | "network";
   reserveTab?: "lib" | "room" | "classroom" | "sports" | "kongjian" | "visit";
   /* ═══ 实体原子深链（万物原子化）：跳进 tab 后自动选中/高亮特定实体 ═══
      仅作挂载/数据就绪后的自动落点，页内手动切换不回写；不带参数行为与旧版一致。 */

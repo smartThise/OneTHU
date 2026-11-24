@@ -7105,6 +7105,7 @@ const locale = {
     "state.navigation.37d169b450b9": "名片 · 好友 · 组织",
     "state.navigation.38c1262f3fc9": "宿舍电费",
     "state.navigation.39bd4d7ba57c": "浏览校园新闻与通知",
+    "state.navigation.bb8c939d0fcd": "订水",
     "state.navigation.3a74de9a9014": "宿舍",
     "state.navigation.41d497d6e07e": "卫生成绩",
     "state.navigation.462b362a41da": "查看编程作业与截止时间",

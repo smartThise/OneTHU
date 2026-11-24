@@ -198,7 +198,7 @@ function BalanceStripCard({ size, display }: { size?: WidgetSize; display?: stri
   const { navigate } = useApp();
   const balance = card.data?.info.balance != null ? "¥" + card.data.info.balance : "—";
   const toCard = (): void => navigate("life", { lifeTab: "card" } as never);
-  const toDorm = (): void => navigate("life", { lifeTab: "dorm", dormSection: "ele" } as never);
+  const toDorm = (): void => navigate("life", { lifeTab: "elec" } as never);
   if (display === "stacked" || (display !== "inline" && (size?.h ?? 1) >= 2)) {
     return (
       <div className="balance-strip is-stacked">

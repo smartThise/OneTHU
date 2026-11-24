@@ -23,7 +23,8 @@ import { TabManageModal } from "../../components/TabManageModal.js";
 import { loadTabLayout, saveTabLayout, type TabLayout } from "../../lib/tabLayout.js";
 import { useApp } from "../../state/context.js";
 import { CardTab } from "./CardTab.js";
-import { DormTab } from "./DormTab.js";
+import { ElectricityTab } from "./ElectricityTab.js";
+import { WaterTab } from "./WaterTab.js";
 import { WasherTab } from "./WasherTab.js";
 import { HygieneTab } from "./HygieneTab.js";
 import { InvoiceTab } from "./InvoiceTab.js";
@@ -33,11 +34,12 @@ import { NetworkTab } from "./NetworkTab.js";
 import { useTabDirection } from "../../lib/motion.js";
 
 export type LifeTab =
-  | "dorm" | "washer" | "hygiene" | "card"
+  | "elec" | "water" | "washer" | "hygiene" | "card"
   | "invoice" | "payroll" | "gradincome" | "network";
 
 export const TABS: Array<{ id: LifeTab; label: string }> = [
-  { id: "dorm", get label() { return i18n("pages.info.lifepage.3a74de9a9014"); } },
+  { id: "elec", get label() { return i18n("pages.info.dormtab.ab8cff9a597a"); } },
+  { id: "water", get label() { return i18n("pages.info.dormtab.bb8c939d0fcd"); } },
   { id: "washer", get label() { return i18n("pages.info.lifepage.6acfa1db6a62"); } },
   { id: "hygiene", get label() { return i18n("pages.info.lifepage.41d497d6e07e"); } },
   { id: "card", get label() { return i18n("pages.info.lifepage.caf1f095b108"); } },
@@ -49,16 +51,47 @@ export const TABS: Array<{ id: LifeTab; label: string }> = [
 const TAB_IDS = TABS.map((t) => t.id);
 const DEFAULT_LAYOUT: TabLayout = { order: TAB_IDS, hidden: [] };
 
+/** 旧布局里的 "dorm" 迁移为电费 + 定水两个独立页签。 */
+function normalizeLifeTab(tab: string | undefined, section?: "ele" | "water"): LifeTab {
+  if (tab === "dorm") return section === "water" ? "water" : "elec";
+  if (tab && (TAB_IDS as readonly string[]).includes(tab)) return tab as LifeTab;
+  return "elec";
+}
+
+function migrateLifeLayout(layout: TabLayout): TabLayout {
+  const order: string[] = [];
+  const hidden = new Set(layout.hidden);
+  let dormHidden = false;
+  for (const id of layout.order) {
+    if (id === "dorm") {
+      dormHidden = hidden.has("dorm");
+      if (!order.includes("elec")) order.push("elec");
+      if (!order.includes("water")) order.push("water");
+      continue;
+    }
+    if ((TAB_IDS as readonly string[]).includes(id) && !order.includes(id)) order.push(id);
+  }
+  for (const id of TAB_IDS) if (!order.includes(id)) order.push(id);
+  const hiddenNext = new Set<string>();
+  for (const id of hidden) {
+    if (id === "dorm") {
+      if (dormHidden) { hiddenNext.add("elec"); hiddenNext.add("water"); }
+    } else if ((TAB_IDS as readonly string[]).includes(id)) hiddenNext.add(id);
+  }
+  return { order, hidden: [...hiddenNext] };
+}
+
 export function LifePage() {
   const uiLocale = useUiLocale();
 
   const { navParams, navigate } = useApp();
-  const [tab, setTab] = useState<LifeTab>(() => navParams?.lifeTab ?? "dorm");
+  const initialTab = normalizeLifeTab(navParams?.lifeTab, navParams?.dormSection);
+  const [tab, setTab] = useState<LifeTab>(initialTab);
   /** 已激活过的 tab 保持挂载：切回即显（数据在 hook 里，无需重复请求） */
-  const [visited, setVisited] = useState<ReadonlySet<LifeTab>>(() => new Set([navParams?.lifeTab ?? "dorm"]));
+  const [visited, setVisited] = useState<ReadonlySet<LifeTab>>(() => new Set([initialTab]));
 
-  /** 栏目布局（显隐 + 顺序） */
-  const [layout, setLayout] = useState<TabLayout>(() => loadTabLayout("life", TAB_IDS));
+  /** 栏目布局（显隐 + 顺序；旧版 "dorm" 自动迁移） */
+  const [layout, setLayout] = useState<TabLayout>(() => migrateLifeLayout(loadTabLayout("life", TAB_IDS)));
   const [manageOpen, setManageOpen] = useState(false);
   const applyLayout = (l: TabLayout) => {
     setLayout(l);
@@ -72,8 +105,8 @@ export function LifePage() {
   const tabDir = useTabDirection(effTab ?? null, visibleIds);
 
   useEffect(() => {
-    const direct = navParams?.lifeTab;
-    if (!direct) return; // 无参数导航（侧栏点击等）：不改变当前 tab
+    const direct = normalizeLifeTab(navParams?.lifeTab, navParams?.dormSection);
+    if (!navParams?.lifeTab) return; // 无参数导航（侧栏点击等）：不改变当前 tab
     setTab((t) => (t === direct ? t : direct));
     setVisited((prev) => (prev.has(direct) ? prev : new Set(prev).add(direct)));
   }, [navParams]);
@@ -119,7 +152,8 @@ export function LifePage() {
       ) : (
         <>
           {/* 模块头由栏目名与各 tab 内部分区标题承担（WasherTab 自带「洗衣机」头） */}
-          <div hidden={effTab !== "dorm"} className={effTab === "dorm" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("dorm") ? <DormTab deepSection={navParams?.dormSection} /> : null}</div>
+          <div hidden={effTab !== "elec"} className={effTab === "elec" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("elec") ? <ElectricityTab /> : null}</div>
+          <div hidden={effTab !== "water"} className={effTab === "water" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("water") ? <WaterTab /> : null}</div>
           <div hidden={effTab !== "washer"} className={effTab === "washer" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("washer") ? <WasherTab deepBuildingId={navParams?.washerBuildingId} deepBuildingName={navParams?.washerBuildingName} deepProvider={navParams?.washerBuildingProvider} deepHlsh={navParams?.washerBuildingHlsh} deepMachine={navParams?.washerMachine} /> : null}</div>
           <div hidden={effTab !== "hygiene"} className={effTab === "hygiene" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("hygiene") ? <HygieneTab /> : null}</div>
           <div hidden={effTab !== "card"} className={effTab === "card" ? "tab-anim" : undefined} data-dir={tabDir}>{visited.has("card") ? <CardTab /> : null}</div>
