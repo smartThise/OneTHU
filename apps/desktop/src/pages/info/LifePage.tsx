@@ -38,9 +38,9 @@ export type LifeTab =
   | "invoice" | "payroll" | "gradincome" | "network";
 
 export const TABS: Array<{ id: LifeTab; label: string }> = [
+  { id: "washer", get label() { return i18n("pages.info.lifepage.6acfa1db6a62"); } },
   { id: "elec", get label() { return i18n("pages.info.dormtab.ab8cff9a597a"); } },
   { id: "water", get label() { return i18n("pages.info.dormtab.bb8c939d0fcd"); } },
-  { id: "washer", get label() { return i18n("pages.info.lifepage.6acfa1db6a62"); } },
   { id: "hygiene", get label() { return i18n("pages.info.lifepage.41d497d6e07e"); } },
   { id: "card", get label() { return i18n("pages.info.lifepage.caf1f095b108"); } },
   { id: "invoice", get label() { return i18n("pages.info.lifepage.92341cf02c56"); } },
@@ -71,6 +71,12 @@ function migrateLifeLayout(layout: TabLayout): TabLayout {
     }
     if ((TAB_IDS as readonly string[]).includes(id) && !order.includes(id)) order.push(id);
   }
+  /* 用户口径：电费/定水固定排在洗衣机之后；旧布局里 dorm 所在的位置不再是权威。 */
+  const moved = ["elec", "water"];
+  const without = order.filter((id) => !moved.includes(id));
+  const washerAt = without.indexOf("washer");
+  without.splice(washerAt >= 0 ? washerAt + 1 : 0, 0, ...moved.filter((id) => !without.includes(id)));
+  order.splice(0, order.length, ...without);
   for (const id of TAB_IDS) if (!order.includes(id)) order.push(id);
   const hiddenNext = new Set<string>();
   for (const id of hidden) {
