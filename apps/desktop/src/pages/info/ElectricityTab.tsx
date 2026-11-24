@@ -84,10 +84,11 @@ function EleRechargeDialog({ open, onClose, onPaid }: { open: boolean; onClose: 
                 <button key={v} className={`btn${amount === String(v) ? " btn-primary" : ""}`} style={{ flex: 1 }} onClick={() => setAmount(String(v))}>¥{v}</button>
               ))}
             </div>
-            <Input inputMode="numeric" placeholder={i18n("pages.info.dormtab.a9897ad6c436")} value={amount} onChange={(value) => setAmount(value)} />
+            <label htmlFor="ele-rch-amount" style={{ display: "block", fontSize: 12, color: "var(--text-2)", marginBottom: 4 }}>{i18n("pages.info.dormtab.c7aab75d07c4")}</label>
+            <Input id="ele-rch-amount" inputMode="numeric" placeholder={i18n("pages.info.dormtab.a9897ad6c436")} value={amount} onChange={(value) => setAmount(value)} />
             {!valid ? <div style={{ fontSize: 12, color: "var(--red, #c04848)", margin: "8px 0" }}>{i18n("pages.info.dormtab.4185184229fa")}</div> : null}
             {err ? <div style={{ color: "#d33", fontSize: 12, marginBottom: 8 }}>{err}</div> : null}
-            <Btn variant="solid" tone="brand" disabled={!valid || busy} onClick={() => void submit()}>{busy ? i18n("pages.info.dormtab.d189e0a2a1c5") : i18n("pages.info.dormtab.c354a744b8cc")}</Btn>
+            <Btn variant="solid" tone="brand" disabled={!valid || busy} onClick={() => void submit()}>{busy ? i18n("pages.info.cardtab.bc1beaa93a7d") : i18n("pages.info.dormtab.c354a744b8cc")}</Btn>
             <div style={{ fontSize: 11, opacity: 0.55, marginTop: 8 }}>{i18n("pages.info.dormtab.b83be644b065")}</div>
           </>
         ) : (

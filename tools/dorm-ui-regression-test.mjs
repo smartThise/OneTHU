@@ -23,6 +23,7 @@ ok(electric.includes("IconBolt") && !electric.includes("⚡"), "余额卡使用�
 ok(electric.includes('className="card-col-side"') && electric.includes("ListWindow fill"), "右侧充值记录使用定长 ListWindow");
 ok(electric.includes("recentRecharge") && water.includes('className="dorm-water-card"'), "指标与订水独立组件");
 ok(electric.includes("EleRechargeDialog") && electric.includes("getEleRechargePayCode"), "电费充值：info-lib pay code + 支付宝二维码");
+ok(electric.includes("pages.info.dormtab.c7aab75d07c4") && !electric.includes("d189e0a2a1c5"), "充值弹窗显示自定义金额，且不再误用「提交订水」文案");
 ok(css.includes(".stats.stats-hero") && css.includes(".card-hero"), "电费复用校园卡 stats-hero/card-hero 样式");
 ok(css.includes(".field input:not(.og-input-el)") && css.includes(".field > input:not(.og-input-el)"), "OG 内部 input 不再套第二层边框");
 ok(!/^\.field input \{$/m.test(css), "没有遗留裸 .field input 规则");

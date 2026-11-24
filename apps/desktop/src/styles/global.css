@@ -6559,3 +6559,18 @@ html:root .free-folder.is-list .free-folder-ball { width: 28px; height: 28px; }
 .dorm-elec .card-col-side { min-width: 0; }
 .elec-unit { margin-left: 8px; font-size: var(--text-sm); font-weight: 500; color: var(--text-3); letter-spacing: 0; }
 .dorm-water-card { padding: 18px; }
+
+/* 洗衣机：图标与名称同一行，名称稍放大；底部给 OneShot/底栏留滚动余量。 */
+html:root .washer-card .og-card-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+html:root .washer-card .washer-name {
+  font-size: var(--text-md, 16px);
+  line-height: 22px;
+  font-weight: 600;
+}
+.washer-tab { padding-bottom: calc(112px + var(--og-safe-bottom, 0px)); }

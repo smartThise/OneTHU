@@ -3929,6 +3929,7 @@ const locale = {
     "pages.info.dormtab.f940c740fd14": "Recharge count",
     "pages.info.dormtab.a9897ad6c436": "Amount (integer yuan)",
     "pages.info.dormtab.4185184229fa": "Amount must be an integer between 10 and 1000",
+    "pages.info.dormtab.c7aab75d07c4": "Custom amount",
     "pages.info.dormtab.c354a744b8cc": "Create Alipay order",
     "pages.info.dormtab.b83be644b065": "Scan with Alipay. Balance is confirmed by myhome.",
     "pages.info.dormtab.9739c55bbbf4": "Payment QR",

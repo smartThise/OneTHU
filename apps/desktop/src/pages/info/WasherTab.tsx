@@ -203,7 +203,7 @@ export function WasherTab({
   }, [gState, groups, sel, loadDevices]);
 
   return (
-    <>
+    <div className="washer-tab">
       <SectionHead
         title={i18n("pages.info.washertab.6acfa1db6a62")}
         aside={i18n("pages.info.washertab.eb6e062fe2c4")}
@@ -340,6 +340,6 @@ export function WasherTab({
           })}
         </>
       ) : null}
-    </>
+    </div>
   );
 }

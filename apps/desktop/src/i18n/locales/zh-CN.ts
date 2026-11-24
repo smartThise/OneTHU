@@ -3929,6 +3929,7 @@ const locale = {
     "pages.info.dormtab.f940c740fd14": "充值笔数",
     "pages.info.dormtab.a9897ad6c436": "输入充值金额（整数元）",
     "pages.info.dormtab.4185184229fa": "充值金额需为 10–1000 的整数",
+    "pages.info.dormtab.c7aab75d07c4": "自定义金额",
     "pages.info.dormtab.c354a744b8cc": "确认充值",
     "pages.info.dormtab.b83be644b065": "请使用支付宝扫码支付，到账以家园网为准",
     "pages.info.dormtab.9739c55bbbf4": "支付二维码",
