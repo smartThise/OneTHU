@@ -27,6 +27,7 @@ export type PluginPermission =
   | "library:read" // 图书馆楼层/区域/座位/记录查询 + 研讨间查询
   | "library:book" // 图书馆座位预约/取消 + 研讨间预约/取消（写操作）
   | "network:read" // 校园网账户/设备/余额（只读）
+  | "font:read" // 读取系统自带字体文件（PDF 字形轮廓匹配用；仅白名单路径，只读）
   | "learn:read" // 网络学堂课程/作业/通知/文件/讨论区（只读）
   | "learn:write" // 网络学堂讨论区发帖/回帖（写操作，需确认）
   | "venue:read" // 体育场馆场景/场地/我的预约（只读）
@@ -71,6 +72,7 @@ export const PLUGIN_PERMISSIONS: ReadonlyArray<{ id: PluginPermission; label: st
   { id: "vault:read", get label() { return i18n("permissions.vault.label"); }, get desc() { return i18n("permissions.vault.desc"); } },
   { id: "vault:write", get label() { return i18n("permissions.vaultWrite.label"); }, get desc() { return i18n("permissions.vaultWrite.desc"); } },
   { id: "info:read", get label() { return i18n("plugins.types.92acc8140843"); }, get desc() { return i18n("plugins.types.e98935ae658f"); } },
+  { id: "font:read", get label() { return i18n("permissions.fontRead.label"); }, get desc() { return i18n("permissions.fontRead.desc"); } },
   { id: "learn:read", get label() { return i18n("plugins.types.cf01361e883f"); }, get desc() { return i18n("plugins.types.d7ca0f2e28a2"); } },
   { id: "learn:write", get label() { return i18n("plugins.types.112f4f9c033a"); }, get desc() { return i18n("plugins.types.eeb2d48d3eaa"); } },
   { id: "venue:read", get label() { return i18n("plugins.types.6dc54a9470ed"); }, get desc() { return i18n("plugins.types.c958b2f88de5"); } },
@@ -175,6 +177,8 @@ export interface CommandResult {
   kv?: Array<{ k: string; v: string }>;
 }
 
+export type { AgentHintMode, AgentHintRequest, AgentHintTrigger, PluginAgentHint, SelectedAgentHint } from "./agentHints.js";
+
 export interface PluginCommand {
   id: string;
   title: string;
@@ -183,6 +187,10 @@ export interface PluginCommand {
   inputPlaceholder?: string;
   /** rust 插件可选：标记为对话面板命令（宿主左下角 dock 据此渲染） */
   dock?: boolean;
+  /** 给 OH / Agent 的命令能力说明：告诉模型「什么时候该用、怎么续读」。
+   *  会随 `plugins.list` 进入 Harness 的 `list_plugin_cmds`；由插件自己维护，
+   *  宿主不写死任何插件名或领域逻辑。纯文本，建议 ≤ 600 字。 */
+  agentHint?: string;
 }
 
 /** 传给插件 activate(ctx) 的完整上下文 */
@@ -190,6 +198,8 @@ export interface PluginContext {
   onethu: OnethuApi;
   /** 注册命令（管理页展示、用户点击执行） */
   registerCommand(cmd: PluginCommand, run: (input: string) => Promise<unknown> | unknown): void;
+  /** 注册「主动提示」：仅在这些时机由宿主筛入上下文，不直接改系统提示。 */
+  registerAgentHint(hint: import("./agentHints.js").PluginAgentHint): void;
   /** 注册侧栏功能页（UI 自由化）：应用导航出现本插件的 tab；
    *  页面内容由插件在容器内全权渲染（onethu.ui.onTabReady / getTabRoot 拿 DOM）。 */
   registerTab(tab: { id: string; title: string; iconSvg?: string }): void;
@@ -331,6 +341,12 @@ export interface OnethuApi {
     physicalExam(): Promise<Array<[string, string]>>;
     assessmentList(): Promise<Array<[string, boolean, string]>>;
   };
+  /** 系统字体（PDF 文本抽取补全用，2026-11）：部分 LaTeX 中文 PDF 没有 /ToUnicode，
+   *  只能靠"嵌入字形轮廓 ↔ 系统同款字体字形"的指纹匹配还原 Unicode。只读白名单路径，
+   *  需 `font:read`；找不到/读失败返回 null，插件按无法还原降级。 */
+  fonts: {
+    system(family: string): Promise<{ family: string; path: string; b64: string } | null>;
+  };
   learn: {
     semesters(): Promise<string[]>;
     courses(semesterId?: string): Promise<{ semester: string; courses: import("@onethu/core").CourseInfo[] }>;
@@ -339,6 +355,8 @@ export interface OnethuApi {
     files(courseId: string, semesterId?: string): Promise<import("@onethu/core").CourseFile[]>;
     /** 下载课件/附件到下载目录，返回本地路径（fileId/filename 来自 files 列表） */
     download(fileId: string, filename?: string): Promise<string>;
+    /** 读取课件/附件原始字节（base64；PDF 等二进制解析用）。与 download 同一 learn 专线会话 */
+    fileContent(fileId: string, filename?: string): Promise<{ name: string; mime: string; size: number; b64: string }>;
     reply(wlkcid: string, threadId: string, content: string): Promise<void>;
     post(wlkcid: string, bqid: string, title: string, html: string): Promise<void>;
     bbsBoards(wlkcid: string): Promise<import("@onethu/core").LearnBbsBoard[]>;
@@ -461,6 +479,17 @@ export interface OnethuApi {
     widgetCreate(name: string, html: string, x?: number, y?: number): { id: string };
     widgetList(): Array<{ id: string; name: string; createdAt: number }>;
     widgetDelete(id: string): void;
+    /** 在白板上放一张「插件交互卡片」：点一下执行本插件的 `tapCmdId`，卡片左上角显示命令返回的状态文本。
+     *  `cardId` 为插件内唯一标识：同 id 重复调用是就地更新（不会长两张）；`boardId` 缺省 = 首页系统板
+     *  （`onePageList()` 里 `kind === "system"` 那块）。只能调用本插件自己的命令；卡片内容全按纯文本渲染。
+     *  典型用途：电子木鱼、打卡计数器、小游戏入口。 */
+    actionCard(input: {
+      cardId: string; title: string; tapCmdId: string; statusCmdId?: string;
+      icon?: string; input?: string; boardId?: string;
+      x?: number; y?: number; w?: number; h?: number;
+    }): Promise<{ id: string; boardId: string; reused: boolean }>;
+    /** 移除本插件之前放的交互卡片（只删自己的；不传 boardId = 所有板）。 */
+    actionCardRemove(cardId: string, boardId?: string): Promise<{ ok: boolean }>;
     onePageCreate(name: string, icon?: string): { id: string };
     onePageList(): Array<{ id: string; name: string; kind: string; icon: string }>;
     onePageDelete(id: string): { ok: boolean; reason?: string };
@@ -798,9 +827,11 @@ export interface OnethuApi {
   };
   plugins: {
     /** 列出已启用 JS 插件及其命令（联动插件工具发现）。需 plugins:call 权限 */
-    list(): Promise<Array<{ pluginId: string; pluginName: string; commands: Array<{ id: string; title: string; inputLabel?: string }> }>>;
+    list(): Promise<Array<{ pluginId: string; pluginName: string; commands: Array<{ id: string; title: string; inputLabel?: string; agentHint?: string }> }>>;
     /** 执行已启用插件的命令（高危：命令可能含写操作，由插件内部两段确认兜底）。需 plugins:call 权限 */
     call(pluginId: string, cmdId: string, input?: string): Promise<unknown>;
+    /** OH Harness 获取当前时机命中的插件提示；宿主完成筛选/限流。 */
+    agentHints(input: import("./agentHints.js").AgentHintRequest): Promise<import("./agentHints.js").SelectedAgentHint[]>;
   };
   /** 极客模式：浏览器探索（桌面 Only；能力最小面） */
   browser: {

@@ -622,6 +622,76 @@ html.is-phone .explorer-panel.is-home-canvas::-webkit-scrollbar { display: none;
 .free-item.is-live .free-handle { opacity: 1; }
 
 /* 用户生成组件：tint 底 + 自由排版（净化白名单内） */
+
+/* ── 插件交互卡片（custom:plugin-action:<pluginId>:<cardId>）──────────────────
+   壳由宿主画：左上角状态、中央图标、底部标题；点击跑插件命令。
+   插件可以按 [data-plugin-action="<pluginId>:<cardId>"] 覆盖图标/背景（registerCss）。 */
+.free-item .plugin-action-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 10px 10px;
+  border: 0;
+  border-radius: var(--r-lg, 16px);
+  background: var(--surface, rgba(255, 255, 255, .72));
+  color: var(--text-1, #1b1b1f);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  overflow: hidden;
+  touch-action: manipulation;
+  container-type: size;
+  transition: transform .12s ease, background .16s ease;
+}
+.free-item .plugin-action-card:hover { background: var(--hover, rgba(0, 0, 0, .05)); }
+.free-item .plugin-action-card:active { transform: scale(.96); }
+.free-item .plugin-action-card[data-disabled="1"] { opacity: .55; cursor: default; }
+.free-item .plugin-action-card:focus-visible { outline: 2px solid var(--accent, #3b82f6); outline-offset: 2px; }
+.free-item .pac-status {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  right: 10px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--text-2, #5f6368);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.free-item .pac-icon {
+  font-size: clamp(20px, 34cqw, 64px);
+  line-height: 1;
+  user-select: none;
+  animation: pac-bump .28s cubic-bezier(.2, .8, .3, 1);
+}
+.free-item .pac-icon svg { width: 1em; height: 1em; display: block; }
+.free-item .pac-title {
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2, #5f6368);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes pac-bump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18) rotate(-4deg); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .free-item .pac-icon { animation: none; }
+  .free-item .plugin-action-card { transition: none; }
+}
 .free-usergen {
   height: 100%;
   overflow: auto;

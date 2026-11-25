@@ -13,6 +13,9 @@ import {
   washerProviderCode, washerProviderOf,
 } from "@onethu/core";
 import { Card, Empty, ErrorNote, SectionHead, SkeletonRows } from "../../components/Layout.js";
+import {
+  IconWasherDryer, IconWasherFront, IconWasherShoe, IconWasherTop, IconWasherUnknown,
+} from "../../components/Icons.js";
 import { logLine } from "../../lib/clients.js";
 import { explainNetworkError, universalFetch } from "../../lib/transport.js";
 import { useApp } from "../../state/context.js";
@@ -44,6 +47,30 @@ export function washerDisplayName(name: string): string | null {
     if (pattern.test(raw)) return label();
   }
   return null;
+}
+
+type WasherKind = "top" | "front" | "shoe" | "dryer" | "other";
+
+/** 设备类型 → 图标；优先看设备名前缀（he/hr/wm/dr），再看 type 中文。 */
+function washerKind(w: WasherDevice): WasherKind {
+  const name = w.name.trim();
+  const raw = name + " " + w.type;
+  if (/洗鞋|shoe/i.test(raw) || /^wm/i.test(name)) return "shoe";
+  if (/烘干|dryer/i.test(raw) || /^dr/i.test(name)) return "dryer";
+  if (/滚筒|front/i.test(raw) || /^hr/i.test(name)) return "front";
+  if (/波轮|top/i.test(raw) || /^he/i.test(name)) return "top";
+  return "other";
+}
+
+/** 类型图标：滚筒舱门 / 波轮盘 / 火苗 / 球鞋 / 通用机型。
+ *  五个图标都不带机身外壳，只留各自最核心的特征；图形本体在 components/Icons.tsx
+ *  （同一套 24 网格 / 1.6 描边基座）。 */
+function WasherTypeIcon({ kind }: { kind: WasherKind }) {
+  if (kind === "front") return <IconWasherFront />;
+  if (kind === "top") return <IconWasherTop />;
+  if (kind === "dryer") return <IconWasherDryer />;
+  if (kind === "shoe") return <IconWasherShoe />;
+  return <IconWasherUnknown />;
 }
 
 /** 设备视觉（状态点 + 徽标 + 文案）：空闲绿 / 运行中琥珀 / 待机离线灰 / 故障红。
@@ -176,7 +203,7 @@ export function WasherTab({
   }, [gState, groups, sel, loadDevices]);
 
   return (
-    <>
+    <div className="washer-tab">
       <SectionHead
         title={i18n("pages.info.washertab.6acfa1db6a62")}
         aside={i18n("pages.info.washertab.eb6e062fe2c4")}
@@ -291,7 +318,10 @@ export function WasherTab({
                       .join(" · ");
                     return (
                       <Card className={`washer-card ${v.dot}`} key={`${w.name}-${i}`}>
-                        <span className="washer-dot" aria-hidden />
+                        <span className="washer-type-icon" aria-hidden="true">
+                          <WasherTypeIcon kind={washerKind(w)} />
+                          <span className="washer-dot" />
+                        </span>
                         <div className="washer-main" data-dev={deviceKey}>
                           <div className="washer-name">{title}</div>
                           {sub ? <div className="washer-sub">{sub}</div> : null}
@@ -310,6 +340,6 @@ export function WasherTab({
           })}
         </>
       ) : null}
-    </>
+    </div>
   );
 }

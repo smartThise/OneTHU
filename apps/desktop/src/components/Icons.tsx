@@ -281,6 +281,13 @@ export const IconCard = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUi
   </svg>
 )); };
 
+/** 电量/闪电（描边风格；余额卡与指标共用） */
+export const IconBolt = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
+  <svg {...base(p)}>
+    <path d="M13.5 2.5 5 13.5h5.2L9 21.5l8.5-11h-5.1l1.1-8Z" />
+  </svg>
+)); };
+
 export const IconExternal = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
   <svg {...base(p)}>
     <path d="M13.5 5H19v5.5M19 5l-8 8" />
@@ -455,6 +462,66 @@ export const IconOrb = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiL
     <circle cx="12" cy="12" r="5.8" />
     <circle cx="12" cy="12" r="2.1" fill="currentColor" stroke="none" />
     <circle cx="12" cy="12" r="9.6" strokeDasharray="1.2 3.2" opacity="0.55" />
+  </svg>
+)); };
+
+/* ---------------- 洗衣机设备类型（2026-11 重画） ----------------
+   五个图标都不带「机身外壳」：外壳是四类机器共有的，画上去只会互相稀释辨识度。
+   每类只留最核心的那一个特征，两两之间一眼分得开：
+   · 滚筒 = 侧视舱门：双层圆环 + 左上玻璃反光 + 左侧铰链
+   · 波轮 = 波轮盘：盘面 + 三片「向四周逐渐变宽」的桨叶 + 轴心
+   · 烘干 = 火苗（热风烘干）：单条闭合轮廓，没有和外形对不上的内焰
+   · 洗鞋 = 一只球鞋：鞋底 + 鞋面 + 三道鞋带
+   · 未知 = 通用机型：机身 + 控制带 + 桶口（认不出型号时就画「一台洗衣机」）
+   统一 24 网格 / 1.6 描边 / 圆头。 */
+
+/** 滚筒洗衣机（侧视舱门：双环 + 玻璃反光 + 铰链；反光与内圈留出间隙，不贴边） */
+export const IconWasherFront = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="7.7" />
+    <circle cx="12" cy="12" r="4.9" />
+    <path d="M3.3 10.4v3.2" />
+    <path d="M10.7 9.6A2.7 2.7 0 0 0 9.3 11.5" />
+  </svg>
+)); };
+
+/** 波轮洗衣机（波轮盘：盘面 + 三片桨叶 + 轴心）
+ *  桨叶是「极窄的闭合楔形」：楔形比 1.6 描边还细，描边把内部完全吃掉，
+ *  于是同一条描边从轴心到盘缘逐渐变宽（约 1.8 → 3.0），不需要任何填充。 */
+export const IconWasherTop = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="7.4" />
+    <circle cx="12" cy="12" r="2.05" fill="currentColor" stroke="none" />
+    <path d="M12.96 10.13Q13.91 8.19 14.68 6.16Q15.45 6.02 15.72 6.76Q14.34 8.44 13.14 10.23Z" />
+    <path d="M9.9 12.1Q7.75 12.25 5.6 12.6Q5.1 12 5.6 11.4Q7.75 11.75 9.9 11.9Z" />
+    <path d="M13.14 13.77Q14.34 15.56 15.72 17.24Q15.45 17.98 14.68 17.84Q13.91 15.81 12.96 13.87Z" />
+  </svg>
+)); };
+
+/** 烘干机（火苗：单条闭合轮廓，取自常用火焰图标的外形；没有内焰，所以不会和外形打架） */
+export const IconWasherDryer = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
+  <svg {...base(p)}>
+    <path d="M18.3 11.34A6.67 6.67 0 0 0 16.71 9.13L16.15 8.62L15.9 8.7L15.65 9.4C15.49 9.85 15.21 10.3 14.8 10.76L14.7 10.8 14.6 10.67C14.67 9.52 14.33 8.21 13.57 6.79C12.95 5.62 12.08 4.7 10.99 4.06L10.2 3.59C10.09 3.53 9.96 3.61 9.97 3.73L10.01 4.65C10.04 5.28 9.96 5.84 9.79 6.3C9.58 6.87 9.28 7.39 8.89 7.86A5.68 5.68 0 0 1 7.98 8.75A6.77 6.77 0 0 0 6.05 11.08A6.68 6.68 0 0 0 5.36 14.04C5.36 14.95 5.54 15.83 5.89 16.66A6.71 6.71 0 0 0 7.34 18.79C7.96 19.4 8.68 19.88 9.49 20.22C10.32 20.57 11.2 20.75 12.12 20.75C13.03 20.75 13.91 20.57 14.74 20.22A6.69 6.69 0 0 0 16.89 18.79C17.51 18.17 18 17.45 18.34 16.66A6.61 6.61 0 0 0 18.87 14.05C18.87 13.11 18.68 12.2 18.3 11.34Z" />
+  </svg>
+)); };
+
+/** 洗鞋机（球鞋：鞋底 + 鞋面 + 三道鞋带） */
+export const IconWasherShoe = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
+  <svg {...base(p)}>
+    <rect x="3.4" y="17.5" width="17.2" height="2.7" rx="1.35" />
+    <path d="M4.1 17.5V9.4c0-.9.5-1.7 1.4-2l3.7-1.3c.5-.2 1.1-.1 1.5.3l.8.8c.5.5.7 1.2.6 1.9-.1.7-.4 1.3-.9 1.8l4.5 2c1.8.8 3.3 2.2 4.2 4.1.1.2.1.3.1.5H4.1Z" />
+    <path d="M12.3 13.1 13.2 11.2" />
+    <path d="M13.7 13.7 14.6 11.8" />
+    <path d="M15.1 14.3 16 12.4" />
+  </svg>
+)); };
+
+/** 未知设备（通用机型：认不出型号时的「一台洗衣机」） */
+export const IconWasherUnknown = (p: SVGProps<SVGSVGElement>) => { const uiLocale = useUiLocale(); return ((
+  <svg {...base(p)}>
+    <rect x="4.8" y="2.6" width="14.4" height="18.8" rx="2.8" />
+    <path d="M4.8 6.6h14.4" />
+    <circle cx="12" cy="14.4" r="4.9" />
   </svg>
 )); };
 

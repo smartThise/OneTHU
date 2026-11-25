@@ -19,8 +19,10 @@ import {
   type TwoFactorMethod,
 } from "@onethu/core";
 import { universalFetch, nativeFetch, nativeSeedCookies, nativeCookieClear, isTauri, setHopCookieProvider, setHopLogger, setHopUrlWrapper } from "./transport.js";
+import { markSignedIn, markSignedOut } from "./sessionLifecycle.js";
+import { decryptSecret, encryptSecret } from "./secureSecret.js";
 import { loginCooldownLeftMs } from "./loginGate.js";
-import { setWebvpnLog, setZhjwxkDebug, setZhjwxkNativeClear, setZhjwxkReloginHook } from "@onethu/core";
+import { setWebvpnLog, setZhjwxkDebug, setZhjwxkNativeClear, setZhjwxkReloginHook, resetExternalHomeworkSessionRetryState } from "@onethu/core";
 import { redactNetworkLog } from "./networkLog.js";
 import { loginFailureDiagnostic } from "./loginErrors.js";
 import { probeLearnSession } from "./learnRecovery.js";
@@ -141,7 +143,9 @@ export async function loadRemembered(): Promise<RememberedCredentials | null> {
   try {
     const j = JSON.parse(raw) as { username?: string; secret?: string };
     if (!j.username || !j.secret) return null;
-    const password = deobfuscateSecret(j.secret, j.username);
+    const password = j.secret.startsWith("aes-gcm-v1:")
+      ? await decryptSecret(j.secret)
+      : deobfuscateSecret(j.secret, j.username); // 旧版本迁移读取
     if (!password) return null;
     return { username: j.username, password };
   } catch {
@@ -286,6 +290,12 @@ session.info.setRenewers({
 // 指数冷却（30s 起步、封顶 10min）防风控连锤。
 let libSoftFailStreak = 0;
 let libSoftCooldownUntil = 0;
+/** 登录成功/登出/换账号：清空进程级重登失败冷却，别把旧账号的稀疏恢复窗口带过去。 */
+function resetAuthRecoveryBackoff(): void {
+  libSoftFailStreak = 0;
+  libSoftCooldownUntil = 0;
+}
+
 async function libSoftRelogin(): Promise<boolean> {
   if (Date.now() < libSoftCooldownUntil) return false;
   try {
@@ -422,6 +432,9 @@ async function performLogin(
   try {
     const r = await libLogin(username, password, fingerprint);
     if (r.state === "ready") {
+      markSignedIn();
+      resetAuthRecoveryBackoff();
+      resetExternalHomeworkSessionRetryState();
       session.username = username;
       session.state = "ready";
       // SAVE_FINGER 受信凭据同步（2FA 链内签发的才有效；直登后补签=身份异常）
@@ -698,15 +711,17 @@ export async function persist(): Promise<void> {
   await fileWrite(SESSION_FILE, JSON.stringify(snapshot));
   // 记住密码：登录成功链路（含 2FA 完成）统一在此落盘
   if (pendingSecret?.remember && pendingSecret.password) {
-    await fileWrite(
-      SECRET_FILE,
-      JSON.stringify({
-        v: 1,
-        username: pendingSecret.username,
-        secret: obfuscateSecret(pendingSecret.password, pendingSecret.username),
-        savedAt: Date.now(),
-      }),
-    ).catch(() => undefined);
+    /* 密码优先 AES-GCM（密钥 non-extractable，只在 IndexedDB）；加密不可用时
+       宁可不落盘，也不回退到可逆 XOR。旧凭据仍可按旧格式读取并迁移。 */
+    const secret = await encryptSecret(pendingSecret.password).catch(() => "");
+    if (secret) {
+      await fileWrite(
+        SECRET_FILE,
+        JSON.stringify({ v: 2, username: pendingSecret.username, secret, savedAt: Date.now() }),
+      ).catch(() => undefined);
+    } else {
+      await logLine("SECRET encrypted storage unavailable; password not persisted").catch(() => undefined);
+    }
   }
 }
 
@@ -1069,6 +1084,9 @@ export async function trySilentRelogin(): Promise<
 
 export async function logout(): Promise<void> {
   // A probe that was still running after the boot deadline cannot revive logout.
+  markSignedOut();
+  resetAuthRecoveryBackoff();
+  resetExternalHomeworkSessionRetryState();
   resumeGeneration++;
   resumeSnapshotUsername = null;
   let sharedError: unknown;
@@ -1273,6 +1291,42 @@ export function isLoginWallBody(mime: string, buf: Uint8Array): boolean {
   if (/^image\//i.test(mime)) return false;
   const head = new TextDecoder().decode(buf.subarray(0, 512)).trimStart();
   return /location\.href/i.test(head) || /^<(!doctype|html)/i.test(head);
+}
+
+/** 插件读取课件/附件原始字节的上限：webview 里 base64 会再放大 4/3，64MB 原文件
+ *  约 85MB 字符串，超过就别在插件进程里解析了（提示用户先下载到本地）。 */
+export const LEARN_FILE_MAX_BYTES = 64 * 1024 * 1024;
+
+/**
+ * 读取课件/附件的**原始字节**（插件解析 PDF 等二进制用）。
+ *
+ * 取数形态与图片/预览完全一致：`sessionUrl` 换成会话可达的 webvpn 包装形态并补
+ * learn 的 `_csrf`，再用 nativeFetch 走原生通道（原生 cookie 仓 + 主 webview UA）。
+ * 直连 learn 域或 JS 侧 tauriFetch 都拿不到会话（见 downloadLearnUrl / fetchImageDataUrl
+ * 注释里的实录），所以这里不能图省事用普通 fetch。
+ *
+ * 返回 base64 而不是 ArrayBuffer：插件门面走 JSON-RPC 文本桥，二进制只能这样过。
+ */
+export async function learnFileContent(
+  fileId: string,
+  filename?: string,
+): Promise<{ name: string; mime: string; size: number; b64: string }> {
+  const id = String(fileId ?? "").trim();
+  if (!id) throw new Error(i18n("lib.clients.learnFileIdRequired"));
+  const name = String(filename ?? "").trim() || `learn-${id}`;
+  const { LEARN_FILE_DOWNLOAD } = await import("@onethu/core");
+  const resp = await nativeFetch(sessionUrl(LEARN_FILE_DOWNLOAD(id)), { method: "GET" });
+  const mime = (resp.headers.get("content-type") ?? "").split(";")[0]?.trim() ?? "";
+  const buf = new Uint8Array(await resp.arrayBuffer());
+  if (!buf.length) throw new Error(i18n("lib.clients.learnFileEmpty", { name }));
+  if (buf.length > LEARN_FILE_MAX_BYTES) {
+    throw new Error(i18n("lib.clients.learnFileTooLarge", {
+      mb: String(Math.round(buf.length / (1024 * 1024))),
+      max: String(Math.round(LEARN_FILE_MAX_BYTES / (1024 * 1024))),
+    }));
+  }
+  if (isLoginWallBody(mime, buf)) throw new Error(i18n("lib.clients.193d04db6243"));
+  return { name, mime, size: buf.length, b64: bytesToBase64(buf) };
 }
 
 async function fetchImageDataUrl(url: string, forceWrap: boolean): Promise<string> {

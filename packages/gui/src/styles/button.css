@@ -12,8 +12,8 @@
   --og-c-btn-pad-x: var(--og-ctl-pad-x-md);
   --og-c-btn-radius: var(--og-radius-control);
   --og-c-btn-ink: var(--og-content-1);
-  --og-c-btn-strong: var(--og-action);
-  --og-c-btn-on-strong: var(--og-action-on);
+  --og-c-btn-strong: var(--og-accent);
+  --og-c-btn-on-strong: var(--og-accent-on);
   --og-c-btn-soft: var(--og-surface-3);
   --og-c-btn-soft-line: var(--og-line-1);
   --og-c-btn-line: var(--og-line-2);
@@ -123,8 +123,8 @@
 
 /* ── 色调：只改色料三件套（与形态正交） ── */
 .og-btn--t-brand {
-  --og-c-btn-strong: var(--og-action);
-  --og-c-btn-on-strong: var(--og-action-on);
+  --og-c-btn-strong: var(--og-accent);
+  --og-c-btn-on-strong: var(--og-accent-on);
   --og-c-btn-soft: var(--og-accent-soft);
   --og-c-btn-soft-line: var(--og-accent-soft-line);
   --og-c-btn-line: var(--og-accent-soft-line);

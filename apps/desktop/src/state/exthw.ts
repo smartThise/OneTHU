@@ -891,6 +891,7 @@ export function refreshExtHw(): Promise<void> {
     // R21-A：Tyche 会话失效（status=login / 401 / 跳登录页）→ 记住密码时静默自动重登一次
     // 并重拉；频控 / in-flight 去重 / 失败文案前缀都在 core，显式退出抑制在本模块。
     const next = maskValue(await refreshExternalHomework({
+      account: () => session.username || "anonymous",
       getCreds: () => getExtHwCreds(),
       fetchLike: universalFetch,
       http,

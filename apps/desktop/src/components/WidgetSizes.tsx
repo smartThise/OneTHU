@@ -19,7 +19,7 @@ import { t as i18n, rich as i18nRich, useLocale as useUiLocale } from "../i18n/i
  * 占格比例，再整体缩放到卡片里显示。渲染器拿到第二个参数（档位尺寸）即可切换排版。
  */
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { tierLabel, sizeKey, type SizeTier, type WidgetDef, type WidgetSize } from "../state/widgetMeta.js";
+import { tierLabel, sizeKey, type SizeTier, type WidgetDef, type WidgetSize, type WidgetStyle } from "../state/widgetMeta.js";
 import type { WidgetRenderer } from "./WidgetHost.js";
 
 /** 一个基准单位在真实白板上的像素高（与 boardCore.TILE_H 一致）。 */
@@ -94,14 +94,16 @@ export function WidgetPreviewBody({
   def,
   renderer,
   tier,
+  props,
 }: {
   def: WidgetDef;
   renderer?: WidgetRenderer;
   tier: SizeTier;
+  props?: Record<string, unknown>;
 }): ReactNode {
   const uiLocale = useUiLocale();
 
-  const out = renderer ? renderer(undefined, tier) : <SampleSkeleton def={def} />;
+  const out = renderer ? renderer(props, tier) : <SampleSkeleton def={def} />;
   return def.spec.kind === "card" || def.spec.kind === "custom" ? <div className="wg-card">{out}</div> : out;
 }
 
@@ -399,4 +401,174 @@ export function WidgetSizeList({
 export function tierAt(tiers: readonly SizeTier[], index: number): WidgetSize {
   const t = tiers[Math.max(0, Math.min(index, tiers.length - 1))];
   return t ? { w: t.w, h: t.h } : { w: 1, h: 1 };
+}
+
+/**
+ * 横向「样式」卡片流：添加组件时复用尺寸菜单的位置和手势语汇。
+ * 每张卡直接用该样式的 props 渲染真实卡体，滑到哪张就添加哪种样式。
+ */
+export function WidgetStyleList({
+  def,
+  styles,
+  index,
+  renderer,
+  onSelect,
+}: {
+  def: WidgetDef;
+  styles: readonly WidgetStyle[];
+  index: number;
+  renderer?: WidgetRenderer;
+  onSelect: (index: number) => void;
+}): ReactNode {
+  const uiLocale = useUiLocale();
+
+  const n = Math.max(1, styles.length);
+  const wrap = (k: number): number => ((k % n) + n) % n;
+  const [pos, setPos] = useState(index);
+  const posRef = useRef(index);
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const touch = useRef<{ x0: number; pos0: number; samples: Array<{ t: number; x: number }> } | null>(null);
+  const movedRef = useRef(false);
+  const [dragging, setDragging] = useState(false);
+  const [step, setStep] = useState(240);
+  const animRef = useRef(false);
+  const indexRef = useRef(index);
+  indexRef.current = index;
+  const setPosBoth = (p: number): void => { posRef.current = p; setPos(p); };
+  const gotoIdx = (k: number, dur = 320): void => {
+    const cur = wrap(Math.round(posRef.current));
+    let d = (k - cur) % n;
+    if (d > n / 2) d -= n;
+    if (d < -n / 2) d += n;
+    const target = Math.round(posRef.current) + d;
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    const from = posRef.current;
+    const dist = target - from;
+    if (Math.abs(dist) < 0.001) { setPosBoth(target); return; }
+    animRef.current = true;
+    const t0 = performance.now();
+    const ease = (t: number): number => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const tick = (now: number): void => {
+      const t = Math.min(1, (now - t0) / dur);
+      setPosBoth(from + dist * ease(t));
+      if (t < 1) { rafRef.current = requestAnimationFrame(tick); return; }
+      rafRef.current = null;
+      animRef.current = false;
+      if (wrap(Math.round(posRef.current)) !== indexRef.current) gotoIdx(indexRef.current);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
+  useLayoutEffect(() => {
+    const el = shellRef.current;
+    if (!el) return;
+    const measure = (): void => setStep(Math.round(Math.min(el.clientWidth * 0.72, 320) + 12));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  useEffect(() => {
+    if (touch.current || animRef.current) return;
+    if (wrap(Math.round(posRef.current)) === index) return;
+    gotoIdx(index);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, n]);
+  useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
+  const finishDrag = (endX: number): void => {
+    const t = touch.current;
+    touch.current = null;
+    setDragging(false);
+    if (!t) return;
+    const now = performance.now();
+    const s = t.samples;
+    let first = s[0] ?? { t: now, x: endX };
+    for (const p of s) { if (now - p.t <= 120) { first = p; break; } }
+    const dt = Math.max(1, now - first.t);
+    const v = Math.max(-3, Math.min(3, (endX - first.x) / dt));
+    const net = posRef.current - t.pos0;
+    let fling = -(v * 150) / step;
+    if (fling !== 0 && net !== 0 && Math.sign(fling) !== Math.sign(net)) fling = 0;
+    const target = Math.round(posRef.current + fling);
+    const dist = Math.abs(target - posRef.current);
+    gotoIdx(wrap(target), Math.min(760, 300 + dist * 70));
+    const k = wrap(target);
+    if (k !== index) onSelect(k);
+  };
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>): void => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    movedRef.current = false;
+    touch.current = { x0: e.clientX, pos0: posRef.current, samples: [{ t: performance.now(), x: e.clientX }] };
+    setDragging(true);
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>): void => {
+    const t = touch.current;
+    if (!t) return;
+    const dx = e.clientX - t.x0;
+    if (Math.abs(dx) > 6) { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* window fallback */ } }
+    if (Math.abs(dx) > 8) movedRef.current = true;
+    const now = performance.now();
+    t.samples.push({ t: now, x: e.clientX });
+    while (t.samples.length > 2 && now - t.samples[0]!.t > 120) t.samples.shift();
+    setPosBoth(t.pos0 - dx / step);
+  };
+  const base = Math.round(pos);
+  const R = Math.min(NEIGHBOURS, Math.max(0, n - 1));
+  const cards: ReactNode[] = [];
+  for (let d = -R; d <= R; d += 1) {
+    const p = base + d;
+    const k = wrap(p);
+    const style = styles[k];
+    if (!style) continue;
+    const rel = p - pos;
+    const ad = Math.abs(rel);
+    const front = ad < 0.5;
+    cards.push(
+      <button
+        key={p}
+        type="button"
+        role="radio"
+        aria-checked={front}
+        aria-label={style.label}
+        className={"widget-size-item widget-style-item" + (front ? " is-active is-front" : "")}
+        data-style-option={style.id}
+        data-style-index={k}
+        data-style-slot={d}
+        style={{ transform: "translate(-50%, -50%) translateX(" + String(rel * step) + "px) scale(" + String(Math.max(MIN_SCALE, 1 - ad * SCALE_PER_STEP)) + ")", opacity: Math.max(MIN_OPACITY, 1 - ad * OPACITY_PER_STEP), zIndex: 100 - Math.round(ad * 10) }}
+        onClick={() => { if (dragging || movedRef.current) return; if (!front) { gotoIdx(k); onSelect(k); } }}
+      >
+        <span className="widget-size-frame widget-style-frame">
+          <span className="widget-style-preview">
+            <WidgetPreviewBody def={def} renderer={renderer} tier={def.defaultSize} props={style.props} />
+          </span>
+        </span>
+        <span className="widget-size-meta"><span className="widget-size-caption">{style.label}</span><span className="widget-size-check" aria-hidden="true">✓</span></span>
+      </button>,
+    );
+  }
+  return (
+    <div className="widget-size-picker">
+      <div
+        className={"widget-size-carousel" + (dragging ? " is-dragging" : "")}
+        ref={shellRef}
+        role="radiogroup"
+        aria-label={i18n("state.widgetstyle.3d2ba1c5d50f")}
+        data-style-list="1"
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={(e) => finishDrag(e.clientX)}
+        onPointerCancel={(e) => finishDrag(e.clientX)}
+      >
+        {cards}
+      </div>
+      <div className="widget-size-dots" data-style-dots="1">
+        {styles.map((style, k) => (
+          <button key={style.id} type="button" className={"widget-size-dot" + (k === index ? " is-cur" : "")} aria-label={style.label} data-style-dot={k} onClick={() => { gotoIdx(k); onSelect(k); }} />
+        ))}
+      </div>
+    </div>
+  );
 }

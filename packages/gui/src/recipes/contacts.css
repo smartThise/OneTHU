@@ -244,8 +244,8 @@ html[data-og-scheme="dark"] .identity-card {
 .identity-monogram {
   display: grid;
   place-items: center;
-  background: var(--og-action);
-  color: var(--og-action-on);
+  background: var(--og-accent);
+  color: var(--og-accent-on);
   font-size: var(--og-text-title);
   font-weight: var(--og-weight-semibold);
 }

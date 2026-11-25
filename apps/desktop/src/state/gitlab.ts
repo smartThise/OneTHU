@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { helper, libHydrateCredentials, libLoginPending, restoreGitlabSession } from "../lib/infoLib.js";
 import { explainNetworkError, nativeCookieClear, nativeFetch } from "../lib/transport.js";
 import { loginCooldownLeftMs } from "../lib/loginGate.js";
+import { session } from "../lib/clients.js";
 import { roam } from "@onethu/info-lib";
 import { http } from "../lib/clients.js";
 import type {
@@ -102,7 +103,7 @@ export function gitlabEnsureSession(): Promise<boolean> {
       if (Date.now() - probeAliveAt < PROBE_OK_TTL_MS) return true;
       if (Date.now() - lastAutoRoamAt < AUTO_ROAM_COOLDOWN_MS) return false;
       // 不与正在进行的 2FA 登录链 / 主链重登抢道（都动 id/oauth 域，混跑必互踩）
-      if (libLoginPending() || loginCooldownLeftMs() > 0) return false;
+      if (libLoginPending() || loginCooldownLeftMs(session.username) > 0) return false;
       lastAutoRoamAt = Date.now();
       await roam(helper, "gitlab", "");
       const ok = (await gitlabProbe()) === "alive";

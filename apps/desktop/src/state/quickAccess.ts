@@ -2,6 +2,7 @@ import { t as i18n } from "../i18n/index.js";
 import {useEffect, useState, useSyncExternalStore} from "react";
 import {NAV_REGISTRY} from "./navigation.js";
 import {explorerSnapshot, openTab, openWorkspace, subscribeExplorer} from "./explorer.js";
+import {pluginTabsSnapshot, subscribePluginTabs} from "../plugins/tabs.js";
 import {openOnePage, userOnePages} from "./onePage.js";
 import type {LearnNav, Page} from "./app.js";
 export type QuickEntry = {id:string; title:string; kind:"page"|"board"|"workspace"; page?:Page; params?:LearnNav; target?:string};
@@ -38,9 +39,12 @@ export function moveQuickEntry(id:string,before:string):void{const all=quickEntr
 export function quickEntries():QuickEntry[]{
  const pages=NAV_REGISTRY.map(e=>({id:'page:'+e.id,title:({learn:i18n("state.quickaccess.2118cbc10988"),reserve:i18n("state.quickaccess.352cdc807892"),life:i18n("state.quickaccess.15d208d1b4c9"),info:i18n("state.quickaccess.e7028601e7da"),schedule:i18n("state.quickaccess.2e3250329028")} as Record<string,string>)[e.id]??e.name,kind:'page' as const,page:e.page,params:e.params}));
  for(const [id,title] of [["reserve",i18n("state.quickaccess.352cdc807892")],["info",i18n("state.quickaccess.e7028601e7da")]] as const){if(!pages.some(p=>p.id==="page:"+id))pages.push({id:"page:"+id,title,kind:"page",page:id,params:undefined});}
+ /* 插件功能页（pageKey = plugin:<插件>:<页>）也是可停靠的一等页面：并入 OneShot 候选，
+    用户可在「更多功能 / OneShot 配置」里把它放成快捷入口（2026-11 新增）。 */
+ const pluginPages:QuickEntry[]=pluginTabsSnapshot().map(t=>({id:'page:'+t.pageKey,title:t.title,kind:'page' as const,page:t.pageKey as Page}));
  const saved:QuickEntry[]=[...userOnePages().map(b=>({id:'board:'+b.id,title:b.name,kind:'board' as const,target:b.id})),...explorerSnapshot().workspaces.map(w=>({id:'workspace:'+w.id,title:w.name,kind:'workspace' as const,target:w.id}))];
  saved.sort((a,b)=>(order.indexOf(a.id)<0?1e6:order.indexOf(a.id))-(order.indexOf(b.id)<0?1e6:order.indexOf(b.id)));
- return [...pages,...saved];
+ return [...pages,...pluginPages,...saved];
 }
 export function useQuickEntries():{entries:QuickEntry[];slots:string[]}{
  const slots=useSyncExternalStore(subscribeQuick,()=>shot,()=>shot);useEntryListVersion();
@@ -54,7 +58,7 @@ export function usePracticalEntries():{entries:QuickEntry[];slots:string[]}{
 /** 功能清单会随 explorer（工作区）/ OnePage / 快捷变化，订阅一次供两个 hook 共用。 */
 function useEntryListVersion():void{
  const [,tick]=useState(0);
- useEffect(()=>{const f=()=>tick(x=>x+1);const a=subscribeExplorer(f),b=subscribeQuick(f);window.addEventListener('onethu.boards.changed',f);return()=>{a();b();window.removeEventListener('onethu.boards.changed',f);};},[]);
+ useEffect(()=>{const f=()=>tick(x=>x+1);const a=subscribeExplorer(f),b=subscribeQuick(f),c=subscribePluginTabs(f);window.addEventListener('onethu.boards.changed',f);return()=>{a();b();c();window.removeEventListener('onethu.boards.changed',f);};},[]);
 }
 export function openQuickEntry(e:QuickEntry):void{
  if(e.kind==='workspace'&&e.target)openWorkspace(e.target);

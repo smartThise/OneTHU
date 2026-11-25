@@ -51,6 +51,8 @@ export interface WallpaperDoc {
 const KEY = "onethu.wallpaper.v1";
 /** 动态壁纸声音开关（默认关；浏览器自动播放策略要求先静音起播，用户手势里再放开） */
 const SOUND_KEY = "onethu.wallpaper.videosound";
+/** 壁纸遮罩浓度（0..1）：浅色主题永远白色纱、深色主题永远黑色纱，浓度由用户调。 */
+const VEIL_KEY = "onethu.wallpaper.veil";
 /** 壁纸库容量（张）：满了提示并拒绝入库 */
 export const LIBRARY_MAX = 12;
 /** 视频壁纸单文件上限（字节）：超限拒绝入库/应用 */
@@ -123,6 +125,7 @@ function load(): WallpaperDoc {
 
 let doc: WallpaperDoc = load();
 let docVersion = 0;
+let veilVersion = 0;
 const listeners = new Set<() => void>();
 
 function commit(next: WallpaperDoc): void {
@@ -301,7 +304,6 @@ export function shellWallpaperSnapshot(): ShellWallpaper | null {
     shellCache = null;
     return null;
   }
-  const veil = veilOpacityFor(ref);
   const css = builtinCss(ref);
   const next: ShellWallpaper = isVideoRef(ref)
     ? { ref, kind: "video", backgroundImage: null, lum: "dark" }
@@ -310,7 +312,7 @@ export function shellWallpaperSnapshot(): ShellWallpaper | null {
       : {
           ref,
           kind: "image",
-          backgroundImage: `linear-gradient(rgba(0, 0, 0, ${veil}), rgba(0, 0, 0, ${veil})), url(${displayRef(ref)})`,
+          backgroundImage: `url(${displayRef(ref)})`,
           lum: wallpaperLum(ref),
         };
   shellCacheKey = key;
@@ -450,6 +452,30 @@ export async function importWallpaperFile(file: File): Promise<ImportResult> {
     };
     img.src = url;
   });
+}
+
+/** 壁纸遮罩浓度（0..0.6，默认 0.22）。颜色由主题明暗决定，这里只存浓度。 */
+export function wallpaperVeil(): number {
+  try {
+    const raw = Number(localStorage.getItem(VEIL_KEY));
+    if (Number.isFinite(raw) && raw >= 0) return Math.min(0.6, raw);
+  } catch { /* ignore */ }
+  return 0.22;
+}
+
+export function setWallpaperVeil(value: number): void {
+  const next = Math.max(0, Math.min(0.6, Math.round(value * 100) / 100));
+  try {
+    localStorage.setItem(VEIL_KEY, String(next));
+  } catch { /* 本次有效 */ }
+  veilVersion++;
+  shellCacheKey = "";
+  listeners.forEach((f) => f());
+}
+
+/** 遮罩快照（number 稳定；供 useSyncExternalStore 用） */
+export function wallpaperVeilSnapshot(): number {
+  return Math.round(wallpaperVeil() * 100) / 100 + veilVersion * 0; // 保留版本参与订阅刷新
 }
 
 /* ── 动态壁纸声音（独立小开关，默认关；与壁纸文档同频发布变更） ── */

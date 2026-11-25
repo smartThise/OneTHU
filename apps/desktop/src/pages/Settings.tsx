@@ -1,7 +1,7 @@
 import { t as i18n, rich as i18nRich, msg as i18nMsg, useLocale as useUiLocale } from "../i18n/index.js";
 import { LanguageControl } from "../components/LanguageControl.js";
 import { ExperienceModeControl } from "../components/SimpleExperience.js";
-import { Btn, IconBell, IconBook, IconDownload, IconHelpCircle, IconPalette, IconSun, IconWrench, IconUser, Inline, Input, List, Row, Segment, Select, SettingsList, SettingsRow, Stack, Tag, Text as OGText, TextArea } from "@onethu/gui";
+import { Btn, IconBell, IconBook, IconDownload, IconHelpCircle, IconPalette, IconSun, IconWrench, IconUser, Inline, Input, List, Row, Segment, Select, SettingsList, SettingsRow, Slider, Stack, Tag, Text as OGText, TextArea } from "@onethu/gui";
 import { defineSearchRows } from "../state/searchRows.js";
 import {
   subscribeWallpaper,
@@ -11,6 +11,8 @@ import {
   setWallpaperSlot,
   wallpaperDay,
   wallpaperNight,
+  wallpaperVeilSnapshot,
+  setWallpaperVeil,
 } from "../state/wallpaper.js";
 import { useExplorerState, allTabs } from "../state/explorer.js";
 import { WallpaperLibrary } from "../components/explorer/WallpaperLibrary.js";
@@ -57,9 +59,12 @@ import { YktQrPanel, YktWebLoginPanel } from "../components/ExtHwLoginModal.js";
 import { YKT_WEB_LOGIN_AVAILABLE } from "../lib/yktWebview.js";
 import {
   disableDynamicColor,
+  dynamicSource,
   enableDynamicColor,
   fetchSystemPalette,
   isDynamicEnabled,
+  setDynamicSource,
+  type DynamicSource,
 } from "../lib/dynamicColor.js";
 import { subscribeThemes } from "../state/theme.js";
 import {
@@ -113,7 +118,7 @@ defineSearchRows([
   { id: "set-tabbar-style", tab: "外观", section: "外观", get title() { return i18n("pages.settings.1d08854948f4"); }, aliases: ["标签栏", "竖栏", "横栏", "标签栏默认"], get desc() { return i18n("pages.settings.a6514da1828c"); } , breadcrumb: ["设置", "外观", "外观", "标签栏样式"] },
   { id: "set-glass-level", tab: "外观", section: "外观", get title() { return i18n("pages.settings.865d7ae4c9e6"); }, aliases: ["玻璃", "材质", "毛玻璃", "实心", "磨砂", "雾面", "玻璃质感"], get desc() { return i18n("pages.settings.c85fea7bf89f"); } , breadcrumb: ["设置", "外观", "外观", "玻璃程度"] },
   { id: "set-glass-refraction", tab: "外观", section: "外观", get title() { return i18n("pages.settings.24aca43c3753"); }, aliases: ["折射", "光学折射", "玻璃性能", "边缘折射", "GPU"], get desc() { return i18n("pages.settings.fbc2a8b1d265"); } , breadcrumb: ["设置", "外观", "外观", "光学折射"] },
-  { id: "set-dyn-color", tab: "外观", section: "外观", get title() { return i18n("pages.settings.3d5af6644ab2"); }, aliases: ["动态取色", "壁纸取色", "系统取色", "动态颜色"], get desc() { return i18n("pages.settings.3c23082caeac"); } , breadcrumb: ["设置", "外观", "外观", "跟随系统取色"] },
+  { id: "set-dyn-color", tab: "外观", section: "外观", get title() { return i18n("pages.settings.3d5af6644ab2"); }, aliases: ["动态取色", "壁纸取色", "系统取色", "智能取色", "动态颜色"], get desc() { return i18n("pages.settings.3c23082caeac"); } , breadcrumb: ["设置", "外观", "外观", "智能取色"] },
   { id: "set-capsule-tap", tab: "功能", section: "工作空间", get title() { return i18n("pages.settings.464f0207d4ff"); }, aliases: ["胶囊", "胶囊默认动作", "搜索与胶囊", "底栏胶囊"], get desc() { return i18n("pages.settings.1354e42a5f65"); } , breadcrumb: ["设置", "功能", "工作空间", "点击胶囊默认打开"] },
   { id: "set-search-history", tab: "功能", section: "工作空间", get title() { return i18n("pages.settings.461301d93770"); }, aliases: ["搜索历史", "清空搜索记录"], get desc() { return i18n("pages.settings.b953890db0b9"); } , breadcrumb: ["设置", "功能", "工作空间", "最近搜索记录"] },
   { id: "set-geek", tab: "功能", section: "极客模式", get title() { return i18n("pages.settings.53b5c5c16016"); }, aliases: ["极客", "探索浏览器", "playwright", "浏览器自动化"], get desc() { return i18n("pages.settings.931d5e245827"); } , breadcrumb: ["设置", "功能", "极客模式", "极客模式（浏览器探索）"] },
@@ -672,11 +677,30 @@ function WallpaperSection(): ReactNode {
   const uiLocale = useUiLocale();
 
   const sound = useSyncExternalStore(subscribeWallpaper, videoSoundSnapshot, videoSoundSnapshot);
+  const veil = useSyncExternalStore(subscribeWallpaper, wallpaperVeilSnapshot, wallpaperVeilSnapshot);
   return (
     <div className="wall-section" data-set-id="row-set-wallpaper">
       <div className="setting-title">{i18n("pages.settings.bbaa9f06378b")}</div>
       <div className="setting-desc">{i18n("pages.settings.1fa08e82bab2")}</div>
       <WallpaperLibrary variant="panel" />
+      <div className="wall-sound-row" data-set-id="row-set-wallpaper-veil">
+        <div>
+          <div className="setting-title">{i18n("settings.wallpaper.veil")}</div>
+          <div className="setting-desc">{i18n("settings.wallpaper.veilDesc")}</div>
+        </div>
+        <div style={{ width: 220, maxWidth: "42vw" }}>
+          <Slider
+            value={Math.round(veil * 100)}
+            min={0}
+            max={60}
+            step={1}
+            showValue
+            format={(v) => v + "%"}
+            onChange={(v) => setWallpaperVeil(v / 100)}
+            aria-label={i18n("settings.wallpaper.veilValue")}
+          />
+        </div>
+      </div>
       <div className="wall-sound-row" data-set-id="row-set-wallpaper-sound">
         <div>
           <div className="setting-title">{i18n("pages.settings.b34bc798190c")}</div>
@@ -707,6 +731,7 @@ function AppearanceSection(): ReactNode {
   /* 动态取色（§3.4）：原生探活一次决定开关是否可用。
      桌面与 Android < 12 都返回"不可用"——此时开关置灰而不是隐藏，让用户知道原因。 */
   const [dyn, setDyn] = useState(isDynamicEnabled());
+  const [dynSource, setDynSourceState] = useState<DynamicSource>(() => dynamicSource());
   const [dynOk, setDynOk] = useState<boolean | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   useEffect(() => {
@@ -723,10 +748,14 @@ function AppearanceSection(): ReactNode {
   const toggleDyn = async (): Promise<void> => {
     try {
       if (isDynamicEnabled()) disableDynamicColor();
-      else await enableDynamicColor();
+      else await enableDynamicColor(dynSource);
     } finally {
       setDyn(isDynamicEnabled());
     }
+  };
+  const changeDynSource = (source: DynamicSource): void => {
+    setDynSourceState(source);
+    setDynamicSource(source);
   };
   // 别处（设置 → 外观 的主题列表）切主题会让取色退场：开关跟着回真
   useEffect(() => subscribeThemes(() => setDyn(isDynamicEnabled())), []);
@@ -846,12 +875,36 @@ function AppearanceSection(): ReactNode {
       <SettingsRow id="row-set-dyn-color"
         title={i18n("pages.settings.3d5af6644ab2")}
         sub={
-          dynOk === false ? (
-            dyn ? i18n("pages.settings.dfb8c7f65098") : i18n("pages.settings.25bd968a4ec3")
-          ) : i18n("pages.settings.41efcb0b8b84")
+          dyn
+            ? dynSource === "wallpaper"
+              ? i18n("pages.settings.179cd67c1654")
+              : dynOk === false
+                ? i18n("pages.settings.dfb8c7f65098")
+                : i18n("pages.settings.41efcb0b8b84")
+            : dynOk === false
+              ? i18n("pages.settings.25bd968a4ec3")
+              : i18n("pages.settings.41efcb0b8b84")
         }
         control={<Switch on={dyn} onChange={() => void toggleDyn()} label={i18n("pages.settings.3d5af6644ab2")} />}
       />
+      {dyn ? (
+        <SettingsRow
+          id="row-set-dyn-source"
+          title={i18n("pages.settings.f2377d4518b4")}
+          sub={dynSource === "wallpaper" ? i18n("pages.settings.5bad6f1eddb2") : i18n("pages.settings.ee8f39f6a418")}
+          control={
+            <Segment
+              size="sm"
+              value={dynSource}
+              onChange={(value) => changeDynSource(value as DynamicSource)}
+              options={[
+                { value: "system", label: i18n("pages.settings.5b50d7c4b595") },
+                { value: "wallpaper", label: i18n("pages.settings.dee4d1526978") },
+              ]}
+            />
+          }
+        />
+      ) : null}
       {dyn ? <OGText slot="label" tone="faint">{i18n("pages.settings.d0a6f0c08b1a")}</OGText> : null}
       <ThemePickerModal open={pickerOpen} onClose={() => setPickerOpen(false)} />
     </Stack>

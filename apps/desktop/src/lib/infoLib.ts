@@ -1,4 +1,5 @@
 import { t as i18n, msg as i18nMsg } from "../i18n/index.js";
+import { isSignedOut } from "./sessionLifecycle.js";
 /**
  * thu-info-lib 平台接线层（dev2 管线移植 2026-09-16）。
  *
@@ -213,7 +214,7 @@ const cookieBoundary = createAuthCookieBoundary({
 // Runs inside the library's single flight: manual login AND internal recovery share
 // the same gate. Joining a pending chain or submitting a 2FA code never clears cookies.
 helper.beforeLoginAttemptHook = async () => {
-  markLoginAttempt();
+  markLoginAttempt(helper.userId);
   // Internal library recovery can bypass clients.login; it must use the same device identity.
   const { currentFingerprint } = await import("./clients.js");
   helper.fingerprint = await currentFingerprint();
@@ -226,7 +227,7 @@ helper.beforeLoginAttemptHook = async () => {
   void log(`AUTH-PHASE cookies-${boundary}`);
 };
 helper.afterLoginSuccessHook = () => {
-  markLoginSucceeded();
+  markLoginSucceeded(helper.userId);
   void log("AUTH-PHASE session-established");
 };
 
@@ -298,6 +299,24 @@ export async function restoreGitlabSession(): Promise<void> {
   }
 }
 
+/* ═══════════════ 后台恢复不得抢交互式 2FA ═══════════════
+   保活、HTTP 透明重放、learn 宿主恢复都可能触发 lib 登录；它们没有 UI 去
+   adopt 2FA futures，旧实现会挂在摇柄上直到 3 分钟登录超时，占住全局登录锁。
+   后台恢复期间 2FA hook 立即拒绝 AUTH_2FA_REQUIRED，调用方快速失败并让用户
+   去登录页完成二次认证。计数支持嵌套/并发调用。 */
+let nonInteractiveRecoveryDepth = 0;
+function twoFactorUnavailable(): Error {
+  return Object.assign(new Error("AUTH_2FA_REQUIRED"), { code: "AUTH_2FA_REQUIRED" });
+}
+export async function withNonInteractiveRecovery<T>(work: () => Promise<T>): Promise<T> {
+  nonInteractiveRecoveryDepth += 1;
+  try {
+    return await work();
+  } finally {
+    nonInteractiveRecoveryDepth = Math.max(0, nonInteractiveRecoveryDepth - 1);
+  }
+}
+
 /* ═══════════════ 2FA futures：lib 同步 hooks ⇄ OneTHU 两段式 UI ═══════════════ */
 
 const METHOD_NAMES: { [k in "wechat" | "mobile" | "totp"]: string } = {
@@ -323,6 +342,7 @@ export function getSelfFinger3(): string {
 }
 
 helper.twoFactorMethodHook = (hasWeChatBool, phone, hasTotp) => {
+  if (nonInteractiveRecoveryDepth > 0) return Promise.reject(twoFactorUnavailable());
   const methods: TwoFactorMethod[] = [];
   if (hasWeChatBool) methods.push({ type: "wechat", name: METHOD_NAMES.wechat });
   if (phone) methods.push({ type: "mobile", name: METHOD_NAMES.mobile, detail: phone });
@@ -343,7 +363,7 @@ helper.twoFactorMethodHook = (hasWeChatBool, phone, hasTotp) => {
 };
 
 helper.twoFactorAuthHook = () =>
-  new Promise<string>((resolve, reject) => {
+  nonInteractiveRecoveryDepth > 0 ? Promise.reject(twoFactorUnavailable()) : new Promise<string>((resolve, reject) => {
     rejectCode = reject;
     resolveCode = (code) => {
       resolveCode = null;
@@ -616,6 +636,7 @@ export async function libRoamLearn(): Promise<boolean> {
  * 供漫游类数据层（GitLab）单独调用：它们的换票链要的就是这两样。
  */
 export async function libHydrateCredentials(): Promise<boolean> {
+  if (isSignedOut()) return false;
   const h = helper as unknown as { userId: string; password: string; fingerGenPrint?: string };
   if (!h.userId || !h.password) {
     const remembered = await loadRemembered().catch(() => null);
@@ -632,13 +653,26 @@ export async function libHydrateCredentials(): Promise<boolean> {
 }
 
 export async function libEnsureSession(): Promise<boolean> {
+  /* 显式登出是运行时权威位：哪怕保活/HTTP 重放/页面重试走到这里，也不能
+     用「记住密码」把账号自动登回来。 */
+  if (isSignedOut()) return false;
+  /* 已有登录链（尤其 2FA）正在跑：后台守卫让路，不加入排队。
+     否则会 await outstandingLoginPromise 到 3 分钟超时，手动登录也一起卡住。 */
+  if (libLoginPending()) {
+    void log("LIB-ENSURE skip: login pending");
+    return false;
+  }
+  return withNonInteractiveRecovery(libEnsureSessionInner);
+}
+
+async function libEnsureSessionInner(): Promise<boolean> {
   // ① 对齐 info app：凭据 + 受信指纹先就位（否则重启后无从重登）
   const hasCreds = await libHydrateCredentials();
   // ② 权威探活 + 按需重登（info app 的 verifyAndReLogin 同源实现）：
   //    取用户信息比对 ryh；只有明确过期才使用 helper 上的凭据重登。
   //    比原来「webvpn 端点里有 XSRF-TOKEN 就算活」强：后者只证明网关发了票，
   //    不证明 info 域会话是本人的活会话，会「假活」→ 后续 401 → 用户被踢。
-  if (hasCreds && loginCooldownLeftMs() <= 0) {
+  if (hasCreds && loginCooldownLeftMs(helper.userId) <= 0) {
     const relogged = await verifyAndReLogin(helper); // 返回 false = 会话还活着
     if (relogged) void log("LIB-ENSURE 静默重登成功（verifyAndReLogin）");
     return true;
@@ -659,7 +693,11 @@ export async function libEnsureSession(): Promise<boolean> {
     } catch {
       /* ignore */
     }
-    return true;
+    /* 网关票只证明「网关愿意签票」，不证明 info 域会话仍属于本人。
+       无凭据/冷却期的只读探针只能算 unknown：按 fail-closed 返回 false，
+       不广播 authRecovered、不把 session.state 置回 ready。 */
+    void log("LIB-ENSURE probe=unknown（网关票，未验证业务域会话）");
+    return false;
   }
   // This read-only fallback has no verified credentials (or is cooling down).
   // It cannot promote an old in-flight attempt into a new password submission.
@@ -748,13 +786,28 @@ export const getSecondaryEntries = async (
 /** 强制完整重登（选课死结借用）：不走探活短路——id 会话权威单一来源，
  *  选课判死时由这里重建，选课不再自清仓互踢（2026-09-18 架构定案） */
 export async function libForceRelogin(): Promise<boolean> {
-  const username = inflight?.username ?? "";
-  const password = inflight?.password ?? "";
-  if (!username || !password) return false;
+  if (isSignedOut()) return false;
+  if (libLoginPending()) return false;
+  /* 强制重登不是「绕过准入」：选课页反复死结时，登录冷却必须仍然生效，
+     否则会连续提交密码撞风控。冷却由 libLogin 的 beforeLoginAttemptHook 记账。 */
+  const account = (helper as unknown as { userId?: string }).userId ?? "";
+  if (loginCooldownLeftMs(account) > 0) {
+    void log("FORCE-RELOGIN skip: login cooldown");
+    return false;
+  }
+  return withNonInteractiveRecovery(libForceReloginInner);
+}
+
+async function libForceReloginInner(): Promise<boolean> {
   // 受信凭据喂给 lib：helper.fingerGenPrint 是内存变量，boot 恢复/进程重启后
   // 为空 → libLogin 传空指纹 → id 要 2FA → 强制重登必撞墙（02:23 实录
   // "lib 重登失败 → 回退自清仓"）。sessionFinger3（持久层）优先喂入。
   await libHydrateCredentials(); // 凭据 + 受信指纹统一从持久层回灌
+  const h = helper as unknown as { userId?: string; password?: string };
+  /* inflight 只在本次进程内有效；长闲置/重启后要用 helper 里回灌的「记住密码」。 */
+  const username = inflight?.username || h.userId || "";
+  const password = inflight?.password || h.password || "";
+  if (!username || !password) return false;
   const r = await libLogin(username, password, helper.fingerprint).catch(() => null);
   return r?.state === "ready";
 }

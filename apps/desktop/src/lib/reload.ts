@@ -12,6 +12,8 @@
  */
 
 import { emitAuthRecovered } from "./authRecovery.js";
+import { isSessionExpiredError } from "./sessionErrors.js";
+import { isSignedOut } from "./sessionLifecycle.js";
 
 /** scope 级原地恢复：softRelogin（WebVPN 全链透明重建，CampusSession 内单飞，
  *  并发弹回只跑一条链）。20s 节流窗口内返回 false——窗口内复用 true 会造出
@@ -19,15 +21,38 @@ import { emitAuthRecovered } from "./authRecovery.js";
  *  落回错误条/下一层兜底（看门狗与实例重放仍在后台续命，手动重试必中活会话）。 */
 let lastAttempt = 0;
 let recoverInflight: Promise<boolean> | null = null;
+/** 窗口内/失败后的排队恢复：scope → timer。最多 3 次退避，避免永久失败源无限打。 */
+const recoveryQueue = new Map<string, { timer: ReturnType<typeof setTimeout>; attempt: number }>();
+const RECOVERY_BACKOFF = [5_000, 15_000, 60_000] as const;
+
+function queueRecovery(scope: string, delay: number, attempt: number): void {
+  if (recoveryQueue.has(scope)) return; // 已有排队：不重复重置计时器/次数
+  const nextAttempt = Math.min(attempt, RECOVERY_BACKOFF.length - 1);
+  const timer = setTimeout(() => {
+    void softRecover(scope).then((ok) => {
+      recoveryQueue.delete(scope);
+      if (!ok && nextAttempt + 1 < RECOVERY_BACKOFF.length) {
+        queueRecovery(scope, RECOVERY_BACKOFF[nextAttempt + 1]!, nextAttempt + 1);
+      }
+    });
+  }, Math.max(0, delay));
+  recoveryQueue.set(scope, { timer, attempt: nextAttempt });
+}
+
 export function softRecover(scope: string): Promise<boolean> {
   const now = Date.now();
   if (recoverInflight) return recoverInflight;
-  if (now - lastAttempt < 20_000) return Promise.resolve(false);
+  if (now - lastAttempt < 20_000) {
+    /* 窗口内不返回「失败」让页面永久停住：记下 scope，窗口结束后自动补一次。 */
+    queueRecovery(scope, 20_000 - (now - lastAttempt), 0);
+    return Promise.resolve(false);
+  }
   recoverInflight = (async () => {
     try {
       const { persist, logLine, session } = await import("./clients.js");
       const t0 = Date.now();
       // lib 单管线：会话守卫（探活→死则内存凭据完整重登，受信凭据免 2FA）
+      if (isSignedOut()) return false;
       const { libEnsureSession } = await import("./infoLib.js");
       const ok = await libEnsureSession();
       if (ok) {
@@ -39,9 +64,11 @@ export function softRecover(scope: string): Promise<boolean> {
       }
       await logLine(`SOFT-RECOVER[${scope}] ${ok ? "ok" : "fail"} (${Date.now() - t0}ms)`).catch(() => undefined);
       lastAttempt = Date.now();
+      if (!ok) queueRecovery(scope, RECOVERY_BACKOFF[0], 1);
       return ok;
     } catch {
       lastAttempt = Date.now();
+      queueRecovery(scope, RECOVERY_BACKOFF[0], 1);
       return false;
     } finally {
       recoverInflight = null;
@@ -63,7 +90,7 @@ export async function ensureLearnSession(): Promise<boolean> {
     const { learn, session } = await import("./clients.js");
     // 登录/2FA/已登出阶段不插后台探针：startLogin 与 2FA 自己持有会话门；
     // 这里只维护“已经 ready 的正常使用期”的 learn 会话。
-    if (session.state !== "ready") return false;
+    if (isSignedOut() || session.state !== "ready") return false;
     const ok = await learn.ensureSession();
     if (ok) {
       emitAuthRecovered("learn");
@@ -72,6 +99,61 @@ export async function ensureLearnSession(): Promise<boolean> {
     return ok;
   } catch {
     return false;
+  }
+}
+
+/** 页面显式重试用的无冷却恢复：lib 主会话 → 对应业务会话。
+ *  softRecover 有 20s 全局冷却（防连锤），但页面在 AuthRequired 后需要立即补救；
+ *  这里绕过冷却，但仍复用 core 的单飞/幂等链。 */
+export async function recoverCampusSession(scope: "learn" | "dorm"): Promise<boolean> {
+  try {
+    const { libEnsureSession, libRoamLearn } = await import("./infoLib.js");
+    if (!(await libEnsureSession())) return false;
+    if (scope === "learn") return await ensureLearnSession();
+    const { info } = await import("./clients.js");
+    await info.forceEnsure("dorm");
+    emitAuthRecovered("dorm");
+    emitAuthRecovered("global");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** 页面/详情「重试」的统一学习会话恢复路径。与 useLearnData.retry 同源：
+ *  先 lib 主会话 + learn 漫游，再尝试「记住密码」完整登录；返回 true 表示可重试。 */
+let learnRetryInflight: Promise<boolean> | null = null;
+
+export function recoverLearnSessionForRetry(): Promise<boolean> {
+  /* 详情页常同时有「说明 + 附件页」两条懒加载；并发失登只跑一条恢复链，
+     否则会重复漫游/重复登录，反而把新会话互相顶掉。 */
+  if (learnRetryInflight) return learnRetryInflight;
+  learnRetryInflight = (async (): Promise<boolean> => {
+    let ok = await recoverCampusSession("learn").catch(() => false);
+    if (!ok) {
+      const { trySilentRelogin } = await import("./clients.js");
+      const silent = await trySilentRelogin().catch(() => ({ ok: false as const }));
+      if (silent.ok) ok = await ensureLearnSession().catch(() => false);
+    }
+    return ok;
+  })().finally(() => {
+    learnRetryInflight = null;
+  });
+  return learnRetryInflight;
+}
+
+/**
+ * 课程详情/作业/公告等**旁路 learn 请求**的统一恢复包装：
+ * 遇到会话类错误先按「重试」路径自动恢复 + 重跑一次，仍失败才把错误交给页面弹横幅。
+ * 非会话错误（网络/解析）原样抛出，不触发无谓登录。
+ */
+export async function withLearnRecovery<T>(work: () => Promise<T>): Promise<T> {
+  try {
+    return await work();
+  } catch (error) {
+    if (!isSessionExpiredError(error)) throw error;
+    if (!(await recoverLearnSessionForRetry())) throw error;
+    return await work();
   }
 }
 
@@ -101,6 +183,7 @@ export function installKeepalive(): void {
   setInterval(() => {
     void (async () => {
       try {
+        if (isSignedOut()) return;
         // lib 单管线：探活 + 死则内存凭据静默重登（受信凭据免 2FA）
         const { libEnsureSession } = await import("./infoLib.js");
         const { persist, session } = await import("./clients.js");

@@ -36,5 +36,5 @@ export function rawErrorText(err: unknown): string {
  * 几个碎图，完全推不到「该重新登录了」。
  */
 export function isSessionExpiredError(err: unknown): boolean {
-  return /会话已失效|需要重新登录|未登录|SessionExpired/i.test(rawErrorText(err));
+  return /会话已失效|需要重新登录|未登录|登录状态没有建立|SessionExpired/i.test(rawErrorText(err));
 }

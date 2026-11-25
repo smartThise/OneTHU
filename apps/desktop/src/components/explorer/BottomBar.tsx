@@ -29,7 +29,7 @@ export function BottomBar(): ReactNode {
   const onegoOpen = useOneGoSheetOpen();
   return (
     <nav className="ex-bbar" aria-label={i18n("components.explorer.bottombar.056c999fb13a")}>
-      {!simple && <button id="ex-bbar-tabs-btn" className={"ex-bbar-btn" + (drawerOpen ? " is-open" : "")} onClick={openTabDrawer} aria-expanded={drawerOpen} aria-label={i18n("components.explorer.bottombar.1f24049e6f6b", { count: String(count) })}>
+      {!simple && <button id="ex-bbar-tabs-btn" className={"ex-bbar-btn" + (drawerOpen ? " is-open" : "")} data-tx="keep" onClick={openTabDrawer} aria-expanded={drawerOpen} aria-label={i18n("components.explorer.bottombar.1f24049e6f6b", { count: String(count) })}>
         <span className="ex-bbar-icon">
           <IconTabsCards width={20} height={20} />
           {count > 0 ? <i className="ex-bbar-badge" aria-hidden="true">{count > 99 ? "99+" : count}</i> : null}

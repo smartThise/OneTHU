@@ -80,6 +80,8 @@ if (isPluginRuntimeOwner()) initSystemCalAutoSync();
 // 玻璃程度档位：读档落到 <html data-glass>（默认档不落属性）
 import { initGlassLevel } from "./lib/glassLevel.js";
 initGlassLevel();
+import { installInputModality } from "./lib/inputModality.js";
+installInputModality();
 import "@onethu/ui/base.css";
 import "./styles/global.css";
 import "./styles/glass-levels.css";

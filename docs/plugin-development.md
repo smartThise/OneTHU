@@ -115,6 +115,7 @@ export default async function activate(ctx) {
 | `title` | string | 按钮文案 |
 | `inputLabel` / `inputPlaceholder` | string | 输入框标签与占位符；未设置时不渲染输入框 |
 | `dock` | boolean | 标记为对话面板命令，见 §10 |
+| `agentHint` | string | 给 OH / Agent 的命令说明：什么时候用、如何续读。随 `list_plugin_cmds` 输出；建议 ≤600 字 |
 
 ### 3.4 主题插件
 
@@ -403,6 +404,12 @@ ctx.onethu.ext.homeDock.set("plugin:onethu.habit:main", false);
 - 停靠状态是**用户偏好**：随首页布局持久化，与「插件是否启用」独立——插件被停用/卸载后，
   那颗球会在下次读取布局时自动被过滤掉，不需要插件自己做清理。
 
+**OneShot / 快速入口**（2026-11 起）：插件功能页也会出现在 **OneShot 的候选清单**里
+（`state/quickAccess.ts` 把插件 tab 与一级页并列），用户可在 OneShot 配置 /「更多功能」
+里选「电子木鱼」这类插件页当快捷入口；点击等价于 `nav.go("plugin:<插件>:<页>")`。
+旧宿主没有这条通道时，仍可把插件页停靠到首页一级功能区（上一节），能力不丢。
+
+
 ### 6.4 原子化收藏（对齐宿主收藏夹体系）
 
 宿主收藏夹基于统一的原子引用体系：课程、作业、通知、场馆等均注册为原子，收藏夹只保存
@@ -539,6 +546,67 @@ const st = await ctx.onethu.notify.status(true);   // 传 true 才会发起授�
 | 总开关 | 不受宿主「提醒总开关」约束：该开关控制宿主自身的课程与 DDL 提醒，插件已单独申请 `notify` 权限，是否发送由插件决定 |
 | 用户可见 | 设置 → 通知 → 「插件通知」按插件列出待投递条数，可一键撤销（用户可最终决定是否接收插件通知） |
 | 平台差异 | Android 使用通知渠道与定时闹钟（进程被终止后仍可送达）；macOS 使用系统通知中心；Windows 使用 toast。三端的点击落点深链在桌面端尚未接入（见 architecture.md） |
+
+### 6.7 白板交互卡片（插件动作卡）
+
+白板的 `custom` 组件原本只有「用户生成 HTML」（静态、无事件）。想要一个**点一下有反应**
+的组件（电子木鱼、打卡计数、小游戏入口），用交互卡片：宿主画壳（左上角状态、中央图标、
+底部标题），点击时调用插件**自己的命令**，命令返回值成为卡片状态文本。
+
+```js
+// 点一下跑 `tap`，挂载时跑 `status` 取初始状态；缺省放首页，同 cardId 重复调用是更新
+const { id, boardId, reused } = await ctx.onethu.ext.actionCard({
+  cardId: "main",                 // 插件内唯一；同 id 再调 = 就地更新（不重复长卡）
+  title: "电子木鱼",
+  icon: "🐟",                     // 单行文本（emoji/一个字）；也可用 CSS 覆盖
+  tapCmdId: "tap",
+  statusCmdId: "status",
+  boardId: undefined,             // 缺省 = 首页系统板；也可传 onePageList() 里的 boardId
+  x: 0, y: 0, w: 3, h: 3,
+});
+
+// 移除（只删本插件的卡）
+await ctx.onethu.ext.actionCardRemove("main");
+```
+
+| 规则 | 说明 |
+|---|---|
+| 权限 | `ui`；`actionCardRemove` 同权限 |
+| 命令归属 | 只能引用**本插件**已注册的命令；命令不存在时创建即报错 |
+| 状态文本 | 命令返回字符串（或 `{ text }`）作为左上角状态；超长截断，纯文本渲染 |
+| 连点 | 每次点击立即执行一次命令，不做防抖；只允许较新的结果覆盖显示（乱序保护） |
+| 图标与外观 | `icon` 是文本；插件可用 `registerCss` 以 `[data-plugin-action="<插件id>:<cardId>"]` 限定作用域覆盖背景/字号 |
+| 停用/卸载 | 卡片保留并显示「插件已停用」，点击不执行；插件可用 `actionCardRemove` 自行清理 |
+| 能力边界 | 卡片不渲染插件 HTML/JS；需要完整界面请用插件功能页（§6.3） |
+
+**为什么不做成 iframe/自定义渲染器**：卡片是首页与 OnePage 上的一等条目，要参与拖动、
+缩放、样式档、Android 桌面小组件与板文档持久化；开放任意脚本渲染面既破坏这些语义，
+也把安全边界从「插件进程」扩大到「每个卡片实例」。命令回调 + 文本状态是能覆盖
+计数/打卡/小游戏入口这类需求的最小面。
+
+### 6.8 系统字体读取（PDF 字形轮廓匹配）
+
+少数 LaTeX/pdfTeX 导出的中文 PDF **只嵌入了字体子集、没有 `/ToUnicode`**，字体 cmap
+还是符号编码（0xF000+code → GID）。这类 PDF 的正文在阅读器里显示正常，但任何工具都
+抽不出 Unicode（pdftotext 同样输出乱码）。唯一可靠的补救是：拿**系统里同款字体**的字形
+轮廓与嵌入字形做指纹比对。
+
+```js
+// 只读、白名单路径；找不到返回 null（插件应降级，不要报错）
+const font = await ctx.onethu.fonts.system("KaiTi"); // 也接受 "楷体" / "STKaiti" / 子集前缀
+// font = { family: "kaiti", path: "C:/Windows/Fonts/simkai.ttf", b64: "..." } | null
+```
+
+| 规则 | 说明 |
+|---|---|
+| 权限 | `font:read`；调用前需在 manifest 声明 |
+| 白名单 | 只读 Windows/macOS 常见系统字体固定路径（楷体/宋体/黑体/仿宋/雅黑），**不接受任意路径** |
+| 只读 | 不写系统目录、不读用户目录；单文件上限 26MB，base64 返回 |
+| 失败 | 字体不存在/读取失败返回 `null`；插件须按"无法还原"降级 |
+| 用途 | 供需要从无 ToUnicode PDF 的字形轮廓反查 Unicode 的插件使用（解析嵌入字体的符号 cmap，按轮廓指纹匹配系统字体） |
+
+**实现提示**：系统字体 10MB+，不要每次抽取都读；按字体族缓存，且只在检测到"简单
+TrueType + 无 ToUnicode + FontFile2"的字体时才请求宿主。
 
 ## 7. 接入新的清华服务
 
@@ -746,12 +814,43 @@ atom-link 组件（条目坐标由数据层的查重+落位负责，OH 不自己
 OH 的工具集除内置校园工具外，还内置两个联动工具，使模型可以调用**其他已启用
 插件**的能力：
 
-- `list_plugin_cmds`：列出已启用插件的命令清单；
+- `list_plugin_cmds`：列出已启用插件的命令清单，包含每个命令的 `agentHint`（插件自己写的适用场景/续读提示）；
 - `run_plugin_cmd`：执行某插件命令（`pluginId` / `cmdId` / `input`）。
 
 调用经宿主 `onethu.plugins.*` 门禁（OH 清单声明 `plugins:call` 权限）。**安全
 提示**：插件命令可能包含写操作，模型被指示执行前向用户说明；写型命令应由插件
 内部实现两段式确认（参照 OH 的 ConfirmNeeded 机制）。
+
+### 9.4.1 插件主动提示（agentHint v2）
+
+命令的 `agentHint` 只在 `list_plugin_cmds` 被调用时可见；如果希望插件**主动**把提示送进上下文，
+用 `registerAgentHint`：
+
+```js
+ctx.registerAgentHint({
+  id: "pdf-reading",
+  text: "读取无 ToUnicode 的课件 PDF 时，先找 read_pdf 命令，按页续读……",
+  triggers: [
+    { kind: "session-start" },
+    { kind: "keyword", keywords: ["PDF", "课件", "讲义"] },
+    { kind: "command", commandId: "read_pdf" }
+  ],
+  priority: 10
+});
+```
+
+| 触发 | 注入时机 |
+|---|---|
+| `session-start` | 新会话第一轮，作为系统提示中的插件能力说明 |
+| `keyword` | 当前用户输入命中关键词时，进入**当轮**上下文 |
+| `command` | 该命令经 `run_plugin_cmd` 执行时，随本次工具结果返回 |
+
+宿主限制：
+
+- 每轮最多 3 条、每条 600 字，按 `priority` 降序截断；
+- 只筛选已启用插件；停用/卸载即移除；
+- 文本是第三方能力说明，作为不可信数据标注，不授予权限、不覆盖用户指令；
+- 插件不能直接修改系统提示词，只能声明触发条件，由宿主筛选。
 
 ### 9.5 OH 接入 MCP 服务器
 
@@ -847,6 +946,12 @@ Android WebView 环境不允许执行任意路径的二进制文件，sidecar �
 
 | 版本 | 变更 |
 |---|---|
+| v1.27 | 插件主动提示：新增 `ctx.registerAgentHint`，支持会话开始/关键词/命令三种触发；宿主按 priority 每轮最多注入 3 条（每条 ≤600 字），Harness 在会话首轮、当前轮和命令结果中消费 |
+| v1.26 | 插件命令新增 `agentHint`：随 `plugins.list` / `list_plugin_cmds` 输出，插件自行说明适用场景与续读方式；OH 系统提示词改为通用“先查插件命令并读提示”，移除 PDF 专属硬编码 |
+| v1.25 | 新增 `fonts.system`（`font:read`）：按白名单读系统字体，供插件做字形轮廓匹配；配套 `lib/systemFonts.ts`、`tools/system-font-test.mjs` |
+| v1.24 | 插件功能页并入 **OneShot 候选**（`state/quickAccess.ts`）：插件 tab 与一级页并列出现在快速入口/更多功能配置里；配合既有 `ext.homeDock`，插件页可同时进「首页一级功能区」与「OneShot」 |
+| v1.23 | 新增 `learn.fileContent`：读取课件/附件**原始字节**（base64，≤64MB），走 learn 专线会话（webvpn 包装域 + 原生 cookie 仓 + `_csrf`），供插件解析 PDF 等二进制；与 `learn.download`（落盘返回路径）互补 |
+| v1.22 | 新增白板**插件交互卡片**：`ext.actionCard` / `ext.actionCardRemove`（`ui`）。插件在白板/首页放一张卡片，点击执行自己的命令并把返回文本显示在左上角；同 cardId 就地更新，停用显示「插件已停用」；配套 `state/pluginAction.ts` 纯数据层与渲染壳 `components/PluginActionCard.tsx` |
 | v1.21 | 新增 `gitlab` 命名空间与 `gitlab:read` / `gitlab:write` 权限：项目、仓库文件、Issue、合并请求（讨论线程、回复、解决、表情回应、指派、文件变更、新建与合入）、流水线与作业日志，以及条目计数与 ZIP 归档（api-reference §17）；桌面新增 GitLab 页与 `gitlab.ts` 状态层 |
 | v1.20 | 插件公告热通道（§3.1 `announce` 字段 + §8.4.1 `NOTICE.md` 约定）：激活/打开时后台拉取仓库公告，digest 判新，卡片弹「📢 公告」；**市场列表版本号实时化**：已装卡片/网页市场卡片的版本号直接从各插件仓库最新 manifest 取，名单快照仅作兜底显示 |
 | v1.19 | 插件更新机制：已安装插件卡片自带「检查更新/更新」（本体仓库优先：直接拉仓库最新 manifest 比版本，与安装同管线覆盖更新）；市场名单 version 降级为收录快照，不再要求作者同步维护 |

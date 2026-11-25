@@ -150,6 +150,7 @@
 | [reviews/2026-10-20-updater-audit.md](reviews/2026-10-20-updater-audit.md) | 历史计划/研究/验收证据 |
 | [reviews/2026-10-21-localized-preview-media.md](reviews/2026-10-21-localized-preview-media.md) | 历史计划/研究/验收证据 |
 | [reviews/2026-10-21-public-site-docs.md](reviews/2026-10-21-public-site-docs.md) | 历史计划/研究/验收证据 |
+| [reviews/2026-11-11-auto-relogin-vulnerabilities.md](reviews/2026-11-11-auto-relogin-vulnerabilities.md) | 历史计划/研究/验收证据 |
 | [reviews/schedule-layout-2026-10-20/README.md](reviews/schedule-layout-2026-10-20/README.md) | 历史计划/研究/验收证据 |
 | [schedule-and-sync.md](schedule-and-sync.md) | 现行说明/工程参考 |
 | [screenshots.md](screenshots.md) | 现行说明/工程参考 |

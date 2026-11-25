@@ -38,8 +38,9 @@ import { http, info, learn, logLine, session } from "../lib/clients.js";
 // 的手搓会话管理（探活/漫游/票信任链）整体退役，登录态由 lib + Rust 原生仓负责。
 import { helper as infoHelper } from "../lib/infoLib.js";
 import { explainNetworkError } from "../lib/transport.js";
-import { softRecover, ensureLearnSession } from "../lib/reload.js";
+import { softRecover, ensureLearnSession, recoverCampusSession, recoverLearnSessionForRetry } from "../lib/reload.js";
 import { subscribeAuthRecovered } from "../lib/authRecovery.js";
+import { showToast } from "./toast.js";
 import { appendSecondarySchedule } from "../lib/scheduleSecondary.js";
 import { buildRows, buildSlotIndex, canAdjustZy as canAdjustZyFn, levelTypesOf, parseTimeSlots, type SlotItem, type XkRow, type XkKnote, applyKnote, rememberKnote, isSportsCourse } from "../lib/xklogic.js";
 import type { XkPlanItem } from "@onethu/core";
@@ -490,7 +491,7 @@ export function stopLearnAutoRefresh(): void {
 
 export function useLearnData() {
   const { preview, cacheGet } = useDataScope();
-  const { status } = useApp();
+  const { status, backToLogin } = useApp();
   const [data, setData] = useState<LearnBundle | null>(() => preview ? cacheGet<LearnBundle>("learn")?.data ?? null : cache?.data ?? null);
   const [state, setState] = useState<DataState>((preview ? cacheGet<LearnBundle>("learn") : cache?.data) ? "ready" : "loading");
   const [error, setError] = useState<string | null>(null);
@@ -548,10 +549,12 @@ export function useLearnData() {
       if (err instanceof Error && err.name === "AuthRequiredError") {
         logPageError("LEARN-AUTH", err);
         if (cache) cache.ts = 0;
-        const reRoamed = await relearnRoamOnce();
+        /* 详情/列表共用的完整重试路径：lib 主会话 → learn 漫游 → 记住密码完整登录。
+           在弹「登录状态没有建立起来」横幅之前先主动走一次，而不是让用户先看到红条。 */
+        const recovered = await recoverLearnSessionForRetry();
         if (!active()) return;
-        if (reRoamed) {
-          await load(); // 递归一次：缓存已清，重走数据链；再失败走下一轮分支
+        if (recovered) {
+          await load();
           return;
         }
         // Keep the authenticated shell while the learning service is unavailable.
@@ -598,7 +601,21 @@ export function useLearnData() {
     [preview],
   );
 
-  return { data, state, error, reload: load };
+  /** 页面「重试」不能只是再读一次缓存：先显式跑主会话 → learn 漫游恢复链，
+      再重走数据。长闲置后 learn 会话单独过期时，这是唯一能让按钮真正生效的路径。 */
+  const retry = useCallback(async () => {
+    if (preview) return;
+    const ok = await recoverLearnSessionForRetry();
+    if (!ok) {
+      /* 没有可用凭据/需要 2FA：重试不能无限撞同一堵墙，给明确出口。 */
+      showToast(i18n("state.data.learnRetryNeedsLogin"));
+      void backToLogin();
+      return;
+    }
+    await load();
+  }, [preview, load, backToLogin]);
+
+  return { data, state, error, reload: retry };
 }
 
 /* ============ 学期列表（learnX SemesterSelection） ============ */

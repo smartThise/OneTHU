@@ -18,6 +18,7 @@ function gate(perms: Set<string>, perm: string, what: string): void {
 }
 import { pluginAtomKindOf, registerPluginAtom, unregisterPluginAtoms } from "./pluginAtoms.js";
 import { logLine } from "../lib/clients.js";
+import { AGENT_HINT_TEXT_MAX, selectAgentHints, type AgentHintRequest, type AgentHintTrigger, type LocatedAgentHint, type PluginAgentHint, type SelectedAgentHint } from "./agentHints.js";
 import type { OnethuApi, PluginCommand, PluginContext, PluginManifest, PluginRecord } from "./types.js";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -36,6 +37,9 @@ interface LiveCommand extends PluginCommand {
   run: (input: string) => Promise<unknown> | unknown;
 }
 export const liveCommands = new Map<string, LiveCommand>();
+
+/** 插件主动提示词（registerAgentHint）；只由宿主筛选后进入上下文，不直接写系统提示。 */
+export const liveAgentHints = new Map<string, LocatedAgentHint>();
 const cmdListeners = new Set<() => void>();
 /** 缓存快照：变更时重建（getSnapshot 稳定性） */
 let cmdCache: LiveCommand[] = [];
@@ -172,6 +176,41 @@ function activate(id: string, mod?: any, blobUrl?: string): Promise<void> {
   return task;
 }
 
+/** 插件 hint 的入参校验：有界、纯文本、触发条件有限。 */
+function normalizeAgentHint(pluginId: string, input: PluginAgentHint): LocatedAgentHint | null {
+  if (!input || typeof input !== "object") return null;
+  const id = typeof input.id === "string" ? input.id.trim() : "";
+  if (!/^[A-Za-z0-9._-]{1,64}$/.test(id)) return null;
+  const text = typeof input.text === "string" ? input.text.replace(/[\u0000-\u001f\u007f]/g, " ").trim() : "";
+  if (!text) return null;
+  const triggers: AgentHintTrigger[] = [];
+  for (const raw of Array.isArray(input.triggers) ? input.triggers.slice(0, 8) : []) {
+    const t = raw as Partial<AgentHintTrigger> & { keywords?: unknown };
+    if (!t || typeof t !== "object") continue;
+    if (t.kind === "session-start") triggers.push({ kind: "session-start" });
+    else if (t.kind === "keyword" && Array.isArray(t.keywords)) {
+      const keywords = t.keywords.filter((k): k is string => typeof k === "string").map((k) => k.trim()).filter(Boolean).slice(0, 12);
+      if (keywords.length) triggers.push({ kind: "keyword", keywords });
+    } else if (t.kind === "command" && typeof t.commandId === "string" && t.commandId.trim()) {
+      triggers.push({ kind: "command", commandId: t.commandId.trim().slice(0, 64) });
+    }
+  }
+  if (!triggers.length) return null;
+  return {
+    pluginId,
+    id,
+    text: text.slice(0, AGENT_HINT_TEXT_MAX),
+    triggers,
+    priority: Number.isFinite(input.priority) ? Math.max(-100, Math.min(100, Number(input.priority))) : 0,
+  };
+}
+
+/** 宿主只把「已启用插件」的命中提示交给 OH；禁用的插件即便残留注册也不会注入。 */
+export function agentHintsFor(req: AgentHintRequest): SelectedAgentHint[] {
+  const hints = [...liveAgentHints.values()].filter((h) => getPlugin(h.pluginId)?.enabled === true);
+  return selectAgentHints(hints, req);
+}
+
 async function activateOnce(id: string, mod?: any, blobUrl?: string): Promise<void> {
   if (!isPluginRuntimeOwner()) return;
   if (id === "onethu.harness" && !ohAuthorized()) return;
@@ -227,8 +266,17 @@ async function activateOnce(id: string, mod?: any, blobUrl?: string): Promise<vo
     onethu: api,
     registerCommand: (cmd, run) => {
       if (!cmd?.id || typeof run !== "function") return;
-      liveCommands.set(`${id}:${cmd.id}`, { ...cmd, pluginId: id, run });
+      /* agentHint 是插件自己提供的模型侧能力说明；只保留有界纯文本，
+         避免插件把超长/控制字符塞进每一次 list_plugin_cmds 结果。 */
+      const agentHint = typeof cmd.agentHint === "string"
+        ? cmd.agentHint.replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 800)
+        : undefined;
+      liveCommands.set(`${id}:${cmd.id}`, { ...cmd, agentHint: agentHint || undefined, pluginId: id, run });
       notifyCmds();
+    },
+    registerAgentHint: (hint) => {
+      const h = normalizeAgentHint(id, hint);
+      if (h) liveAgentHints.set(`${id}:${h.id}`, h);
     },
     /** 注册侧栏功能页（UI 自由化）：pageKey = plugin:<id>:<tabId>，内容经 ui.onTabReady 渲染 */
     registerTab: (tab) => {
@@ -305,6 +353,7 @@ async function deactivate(id: string, opts?: { keepTheme?: boolean }): Promise<v
     if (id === "onethu.harness") setCliRuntimeActive(false);
     await disposeRust(id).catch(() => undefined);
     for (const k of [...liveCommands.keys()]) if (k.startsWith(`${id}:`)) liveCommands.delete(k);
+    for (const k of [...liveAgentHints.keys()]) if (k.startsWith(`${id}:`)) liveAgentHints.delete(k);
     notifyCmds();
     live.delete(id);
     return;
@@ -316,6 +365,7 @@ async function deactivate(id: string, opts?: { keepTheme?: boolean }): Promise<v
     await logLine(`[PLUGIN] ${id} dispose 异常：${String(e).slice(0, 120)}`);
   }
   for (const k of [...liveCommands.keys()]) if (k.startsWith(`${id}:`)) liveCommands.delete(k);
+  for (const k of [...liveAgentHints.keys()]) if (k.startsWith(`${id}:`)) liveAgentHints.delete(k);
   for (const l of cmdListeners) l();
   unregisterPluginTabs(id);
   unregisterPluginAtoms(id);

@@ -150,6 +150,7 @@ Current guides and generated API signatures take precedence over dated plans. Hi
 | [reviews/2026-10-20-updater-audit.md](../reviews/2026-10-20-updater-audit.md) | Historical evidence |
 | [reviews/2026-10-21-localized-preview-media.md](../reviews/2026-10-21-localized-preview-media.md) | Historical evidence |
 | [reviews/2026-10-21-public-site-docs.md](../reviews/2026-10-21-public-site-docs.md) | Historical evidence |
+| [reviews/2026-11-11-auto-relogin-vulnerabilities.md](../reviews/2026-11-11-auto-relogin-vulnerabilities.md) | Historical evidence |
 | [reviews/schedule-layout-2026-10-20/README.md](../reviews/schedule-layout-2026-10-20/README.md) | Historical evidence |
 | [schedule-and-sync.md](../schedule-and-sync.md) | Current reference |
 | [screenshots.md](../screenshots.md) | Current reference |

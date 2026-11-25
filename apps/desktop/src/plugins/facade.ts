@@ -54,6 +54,7 @@ import {
   openOnePage, removeOnePage, renameOnePage,
 } from "../state/onePage.js";
 import { SYSTEM_BOARD_ID, rectFromCell } from "../state/boardCore.js";
+import { normalizePluginActionConfig, pluginActionItemId, pluginActionRect, withPluginActionItem, withoutPluginActionItem } from "../state/pluginAction.js";
 import { renameBoard } from "../state/boardOps.js";
 import {
   allSphereEntries, dockSphere, sphereEntry, spheresSnapshot, undockSphere,
@@ -534,6 +535,14 @@ export function buildApi(pluginId: string, perms: Set<string>, options: { before
       physicalExam: () => info.getPhysicalExamResult(),
       assessmentList: () => info.getAssessmentList(),
     }, perms, "info:read") as OnethuApi["info"],
+    /* 系统字体（PDF 字形轮廓匹配）：只读白名单路径，需 font:read；找不到返回 null。 */
+    fonts: {
+      system: async (family: string) => {
+        gate(perms, "font:read", "fonts.system");
+        const { readSystemFont } = await import("../lib/systemFonts.js");
+        return readSystemFont(String(family ?? ""));
+      },
+    },
     learn: wrap({
       semesters: () => learn.getSemesterIdList(),
       courses: async (semesterId?: string) => {
@@ -568,6 +577,12 @@ export function buildApi(pluginId: string, perms: Set<string>, options: { before
         const { downloadLearnFile } = await import("../lib/clients.js");
         const name = filename?.trim() || `learn-${fileId}`;
         return downloadLearnFile(fileId, name);
+      },
+      /** 读取课件/附件原始字节（base64）：插件解析 PDF/二进制用。走同一 learn 专线会话
+       *  （webvpn 包装域 + 原生 cookie 仓 + _csrf），登录墙由 learnFileContent 识别成明确错误。 */
+      fileContent: async (fileId: string, filename?: string) => {
+        const { learnFileContent } = await import("../lib/clients.js");
+        return learnFileContent(fileId, filename);
       },
       reply: (wlkcid: string, threadId: string, content: string) => {
         gate(perms, "learn:write", "learn.reply");
@@ -1050,6 +1065,55 @@ export function buildApi(pluginId: string, perms: Set<string>, options: { before
           return touched ? { ...doc, boards } : null;
         });
         notifyBoardsChanged();
+      },
+      /* 白板「插件交互卡片」：卡片只是壳，点击时跑插件自己的命令（插件代码在 webview 里，
+         能播音效、改自己的 storage）。卡片内容全部纯文本渲染，不引入任意 HTML/JS。 */
+      actionCard: async (input) => {
+        gate(perms, "ui", "ext.actionCard");
+        const config = normalizePluginActionConfig(pluginId, input as never);
+        const { liveCommands } = await import("./loader.js");
+        if (!liveCommands.has(`${pluginId}:${config.tapCmdId}`)) {
+          throw new Error(i18n("plugins.facade.actionCardNoCmd", { cmd: String(config.tapCmdId) }));
+        }
+        if (config.statusCmdId && !liveCommands.has(`${pluginId}:${config.statusCmdId}`)) {
+          throw new Error(i18n("plugins.facade.actionCardNoCmd", { cmd: String(config.statusCmdId) }));
+        }
+        const boardId = String((input as { boardId?: unknown } | undefined)?.boardId ?? "").trim() || SYSTEM_BOARD_ID;
+        const rect = pluginActionRect(input as never);
+        const itemId = "it." + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+        let reused = false;
+        let placed = false;
+        mutateBoards((doc) => {
+          const board = doc.boards.find((b) => b.id === boardId);
+          if (!board) return null;
+          const applied = withPluginActionItem(board.cells.portrait ?? [], config, rect, itemId);
+          reused = applied.reused;
+          placed = true;
+          return {
+            ...doc,
+            boards: doc.boards.map((b) => (b.id === boardId ? { ...b, cells: { ...b.cells, portrait: applied.items } } : b)),
+          };
+        });
+        if (!placed) throw new Error(i18n("plugins.facade.ef62cd3182c8"));
+        return { id: pluginActionItemId(pluginId, config.cardId), boardId, reused };
+      },
+      actionCardRemove: async (cardId: string, boardId?: string) => {
+        gate(perms, "ui", "ext.actionCardRemove");
+        const card = String(cardId ?? "").trim();
+        if (!/^[A-Za-z0-9._-]{1,64}$/.test(card)) throw new Error("cardId 必须是 1–64 位字母/数字/._-");
+        const want = String(boardId ?? "").trim();
+        let removed = false;
+        mutateBoards((doc) => {
+          const boards = doc.boards.map((b) => {
+            if (want && b.id !== want) return b;
+            const applied = withoutPluginActionItem(b.cells.portrait ?? [], pluginId, card);
+            if (!applied.removed) return b;
+            removed = true;
+            return { ...b, cells: { ...b.cells, portrait: applied.items } };
+          });
+          return removed ? { ...doc, boards } : null;
+        });
+        return { ok: removed };
       },
       onePageCreate: (name: string, icon?: string): { id: string } => {
         gate(perms, "ui", "ext.onePageCreate");
@@ -1601,17 +1665,17 @@ export function buildApi(pluginId: string, perms: Set<string>, options: { before
     },
     plugins: {
       /** 列出已启用 JS 插件及其命令（供 OH 等调用方做工具发现）。需 plugins:call 权限 */
-      list: async (): Promise<Array<{ pluginId: string; pluginName: string; commands: Array<{ id: string; title: string; inputLabel?: string }> }>> => {
+      list: async (): Promise<Array<{ pluginId: string; pluginName: string; commands: Array<{ id: string; title: string; inputLabel?: string; agentHint?: string }> }>> => {
         gate(perms, "plugins:call", "plugins.list");
         const { liveCommands } = await import("./loader.js");
-        const byPlugin = new Map<string, { pluginName: string; commands: Array<{ id: string; title: string; inputLabel?: string }> }>();
+        const byPlugin = new Map<string, { pluginName: string; commands: Array<{ id: string; title: string; inputLabel?: string; agentHint?: string }> }>();
         for (const [key, cmd] of liveCommands) {
           const pid = key.split(":")[0] ?? "";
           if (!pid || pid === "onethu.harness") continue;
           const rec = getPlugin(pid);
           if (!rec?.enabled) continue;
           const entry = byPlugin.get(pid) ?? { pluginName: rec.manifest.name, commands: [] };
-          entry.commands.push({ id: cmd.id, title: cmd.title, inputLabel: cmd.inputLabel });
+          entry.commands.push({ id: cmd.id, title: cmd.title, inputLabel: cmd.inputLabel, agentHint: cmd.agentHint });
           byPlugin.set(pid, entry);
         }
         return [...byPlugin.entries()].map(([pluginId, v]) => ({ pluginId, ...v }));
@@ -1622,6 +1686,12 @@ export function buildApi(pluginId: string, perms: Set<string>, options: { before
         gate(perms, "plugins:call", "plugins.call");
         const { runCommand } = await import("./loader.js");
         return runCommand(String(pluginId ?? ""), String(cmdId ?? ""), String(input ?? ""));
+      },
+      /** OH Harness 在会话开始/每轮/命令执行前取命中的插件提示；筛选和 3 条上限都由宿主完成。 */
+      agentHints: async (input) => {
+        gate(perms, "plugins:call", "plugins.agentHints");
+        const { agentHintsFor } = await import("./loader.js");
+        return agentHintsFor(input ?? { mode: "turn" });
       },
     },
     /* 极客模式：浏览器探索（桌面 Only；能力最小面：launch/navigate/eval/snapshot/close；全走 ui 门） */

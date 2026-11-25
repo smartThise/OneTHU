@@ -216,7 +216,7 @@ if (tasks.body === null) {
 /* 4) 设置页：取色开关不许说谎 */
 await evaluate("(() => { const s = [...document.querySelectorAll('.nav-item')].find(e => (e.textContent||'').trim() === '设置'); if (s) (s.closest('button,a,[role=button],li') || s).click(); })()");
 await sleep(1200);
-const sw = await js("{ found: !!document.querySelector('[aria-label=\\\"跟随系统取色\\\"]'), checked: document.querySelector('[aria-label=\\\"跟随系统取色\\\"]')?.getAttribute('aria-checked') ?? null, pref: localStorage.getItem('onethu.dynamicColor') ?? null, supported: !!document.querySelector('[aria-label=\\\"跟随系统取色\\\"]') }");
+const sw = await js("{ found: !!document.querySelector('[aria-label=\\\"智能取色\\\"]'), checked: document.querySelector('[aria-label=\\\"智能取色\\\"]')?.getAttribute('aria-checked') ?? null, pref: localStorage.getItem('onethu.dynamicColor') ?? null, supported: !!document.querySelector('[aria-label=\\\"智能取色\\\"]') }");
 if (!sw.found) {
   notes.push("设置页没找到取色开关（外观区可能在别处）");
 } else {

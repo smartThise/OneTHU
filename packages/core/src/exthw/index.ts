@@ -3,7 +3,7 @@
  *
  * 用法（desktop）：
  *   const sources = createExternalSources({ creds, fetchLike: universalFetch, http });
- *   const results = await Promise.allSettled(sources.map((s) => s.fetch()));
+  const results = await Promise.allSettled(sources.map((s) => s.fetch()));
  *
  * 设计：core 不碰 localStorage / DOM；失败隔离由调用方负责（这里只组装）。
  * TUOJ 系（AI / 经典）优先走带 CookieJar 的 HttpClient（清华统一认证漫游建立的会话在 jar 里）；
@@ -105,6 +105,8 @@ function isTuojFamily(id: ExtHwSourceId): id is TuojSourceId {
  * 凭据经 `getCreds()` 每次现读（重漫游会改写它），重漫游动作经 `rerouteTuoj` 注入。 */
 
 export interface RefreshExternalHomeworkDeps {
+  /** 当前登录账号（用于把自动重登频控隔离到账号；缺省 anonymous）。 */
+  account?: () => string;
   /** 每次组装源时读取当前凭据（重漫游成功后凭据已更新，重试必须重新读取） */
   getCreds: () => ExtHwCreds;
   /** 裸 fetch（desktop 传 universalFetch，Node 测试传 mock） */
@@ -158,38 +160,59 @@ function isSessionRetrySource(id: ExtHwSourceId): id is SessionRetrySourceId {
   return isTuojFamily(id) || id === "tyche" || id === "yuketang";
 }
 
-const sessionRetryState: Record<SessionRetrySourceId, { count: number; lastAt: number }> = {
-  tuoj: { count: 0, lastAt: 0 },
-  tuojClassic: { count: 0, lastAt: 0 },
-  tyche: { count: 0, lastAt: 0 },
-  yuketang: { count: 0, lastAt: 0 },
-};
-/** 同一源并发会话失效共享一次自动重登（in-flight Promise 去重；R19 27.1 / R21-A） */
-const sessionInflight: Partial<Record<SessionRetrySourceId, Promise<boolean>>> = {};
+/** 频控键 = account|source：换账号不得继承上一个账号的次数/冷却。 */
+const sessionRetryState = new Map<string, { count: number; lastAt: number }>();
+/** 同一账号同一源并发会话失效共享一次自动重登（in-flight 去重）。 */
+const sessionInflight = new Map<string, Promise<boolean>>();
+const EMPTY_ACCOUNT = "anonymous";
 
-function sessionRetryAllowed(source: SessionRetrySourceId, now = Date.now()): boolean {
-  const st = sessionRetryState[source];
+function retryKey(account: string, source: SessionRetrySourceId): string {
+  return `${account || EMPTY_ACCOUNT}|${source}`;
+}
+
+function retryBucket(account: string, source: SessionRetrySourceId): { count: number; lastAt: number } {
+  const key = retryKey(account, source);
+  const cur = sessionRetryState.get(key);
+  if (cur) return cur;
+  const next = { count: 0, lastAt: 0 };
+  sessionRetryState.set(key, next);
+  return next;
+}
+
+function sessionRetryAllowed(account: string, source: SessionRetrySourceId, now = Date.now()): boolean {
+  const st = retryBucket(account, source);
   return st.count < SESSION_RETRY_MAX_PER_PROCESS && now - st.lastAt >= SESSION_RETRY_MIN_INTERVAL_MS;
+}
+
+/** 兼容旧测试/调用：清空指定源的所有账号状态。 */
+function resetSources(sources: readonly SessionRetrySourceId[]): void {
+  for (const key of [...sessionRetryState.keys()]) {
+    if (sources.some((source) => key.endsWith(`|${source}`))) sessionRetryState.delete(key);
+  }
+  for (const key of [...sessionInflight.keys()]) {
+    if (sources.some((source) => key.endsWith(`|${source}`))) sessionInflight.delete(key);
+  }
 }
 
 /** 清空 TUOJ 系进程级重漫游频控 / 去重状态（仅离线测试用；应用内无需调用） */
 export function resetTuojSessionRetryState(): void {
-  sessionRetryState.tuoj = { count: 0, lastAt: 0 };
-  sessionRetryState.tuojClassic = { count: 0, lastAt: 0 };
-  delete sessionInflight.tuoj;
-  delete sessionInflight.tuojClassic;
+  resetSources(["tuoj", "tuojClassic"]);
 }
 
 /** 清空 Tyche 进程级自动重登频控 / 去重状态（仅离线测试用；应用内无需调用） */
 export function resetTycheSessionRetryState(): void {
-  sessionRetryState.tyche = { count: 0, lastAt: 0 };
-  delete sessionInflight.tyche;
+  resetSources(["tyche"]);
 }
 
 /** 清空雨课堂进程级换票频控 / 去重状态（仅离线测试用；应用内无需调用） */
 export function resetYuketangSessionRetryState(): void {
-  sessionRetryState.yuketang = { count: 0, lastAt: 0 };
-  delete sessionInflight.yuketang;
+  resetSources(["yuketang"]);
+}
+
+/** 登录成功/登出/换账号时清空全部账号的自动重登频控（用户意图切换后不继承旧状态）。 */
+export function resetExternalHomeworkSessionRetryState(): void {
+  sessionRetryState.clear();
+  sessionInflight.clear();
 }
 
 export interface RefreshExternalHomeworkResult {
@@ -227,6 +250,7 @@ export async function refreshExternalHomework(
     fetchLike: deps.fetchLike,
     http: deps.http,
   });
+  const account = (deps.account?.() ?? "").trim() || EMPTY_ACCOUNT;
   const results = await Promise.allSettled(sources.map((s) => s.fetch()));
 
   const reroutedSources: TuojSourceId[] = [];
@@ -260,21 +284,22 @@ export async function refreshExternalHomework(
       const r = results[i];
       if (r?.status !== "rejected" || !isSessionErrorFor(sid, r.reason)) continue;
       // R19 27.1 / R21-A：同源已有 in-flight 重登 → 直接共享其结果（不再计数、不受频控拦截）
-      let inflight = sessionInflight[sid];
+      const inflightKey = retryKey(account, sid);
+      let inflight = sessionInflight.get(inflightKey);
       if (!inflight) {
-        // 新发起一次重登前先过进程级频控（间隔 / 次数；TUOJ 两源与 tyche 各自独立）
-        if (!sessionRetryAllowed(sid)) continue;
-        const st = sessionRetryState[sid];
+        // 新发起一次重登前先过账号级频控（间隔 / 次数；TUOJ 两源与 tyche 各自独立）
+        if (!sessionRetryAllowed(account, sid)) continue;
+        const st = retryBucket(account, sid);
         st.count += 1;
         st.lastAt = Date.now();
         inflight = (async (): Promise<boolean> => {
           try {
             return await hook();
           } finally {
-            delete sessionInflight[sid];
+            sessionInflight.delete(inflightKey);
           }
         })();
-        sessionInflight[sid] = inflight;
+        sessionInflight.set(inflightKey, inflight);
       }
       rerouteAttempted.add(sid);
       let ok = false;

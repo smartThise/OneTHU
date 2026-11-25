@@ -4,7 +4,7 @@
 
 > 此表由 `node tools/docs-api-surface.mjs` 从 `OnethuApi` 声明生成。
 
-当前声明包含 **36 个命名空间、255 个方法入口**，含嵌套调用入口。语义、示例与权限模型见 [API 参考](api-reference.md) 和 [插件开发指南](plugin-development.md)。权限列只列出门面中可直接识别的字面量校验；其余方法须结合门面上下文核对，不代表免授权。
+当前声明包含 **36 个命名空间、259 个方法入口**，含嵌套调用入口。语义、示例与权限模型见 [API 参考](api-reference.md) 和 [插件开发指南](plugin-development.md)。权限列只列出门面中可直接识别的字面量校验；其余方法须结合门面上下文核对，不代表免授权。
 
 接口声明是类型契约；平台能力、当前模式、登录状态和服务端权限仍可能限制实际调用。声明中的复合参数与返回类型按原样保留。
 
@@ -53,6 +53,8 @@
 | `learn.notifications` | 见门面实现 | `notifications(semesterId?: string): Promise<Array<import("@onethu/core").Notification & { courseName: string }>>;` |
 | `learn.files` | 见门面实现 | `files(courseId: string, semesterId?: string): Promise<import("@onethu/core").CourseFile[]>;` |
 | `learn.download` | 见门面实现 | `download(fileId: string, filename?: string): Promise<string>;` |
+| `learn.fileContent` | 见门面实现 | `fileContent(fileId: string, filename?: string): Promise<{ name: string; mime: string; size: number; b64: string }>;` |
+| `fonts.system` | `font:read` | `system(family: string): Promise<{ family: string; path: string; b64: string } | null>;` |
 | `learn.reply` | `learn:write` | `reply(wlkcid: string, threadId: string, content: string): Promise<void>;` |
 | `learn.post` | `learn:write` | `post(wlkcid: string, bqid: string, title: string, html: string): Promise<void>;` |
 | `learn.bbsBoards` | 见门面实现 | `bbsBoards(wlkcid: string): Promise<import("@onethu/core").LearnBbsBoard[]>;` |
@@ -145,6 +147,8 @@
 | `ext.widgetCreate` | `ui` | `widgetCreate(name: string, html: string, x?: number, y?: number): { id: string };` |
 | `ext.widgetList` | 见门面实现 | `widgetList(): Array<{ id: string; name: string; createdAt: number }>;` |
 | `ext.widgetDelete` | `ui` | `widgetDelete(id: string): void;` |
+| `ext.actionCard` | `ui` | `actionCard(input: { cardId: string; title: string; tapCmdId: string; statusCmdId?: string; icon?: string; input?: string; boardId?: string; x?: number; y?: number; w?: number; h?: number; }): Promise<{ id: string; boardId: string; reused: boolean }>;` |
+| `ext.actionCardRemove` | `ui` | `actionCardRemove(cardId: string, boardId?: string): Promise<{ ok: boolean }>;` |
 | `ext.onePageCreate` | `ui` | `onePageCreate(name: string, icon?: string): { id: string };` |
 | `ext.onePageList` | 见门面实现 | `onePageList(): Array<{ id: string; name: string; kind: string; icon: string }>;` |
 | `ext.onePageDelete` | `ui` | `onePageDelete(id: string): { ok: boolean; reason?: string };` |

@@ -325,3 +325,11 @@ html.is-phone .dock-panel {
    呼吸缝仍在（「弹一下」的语义不变）。 */
 /* Grow panels measure the actual bar and visual viewport in ChatDock. No CSS
    bottom override: it would defeat the keyboard/orientation viewport clamp. */
+
+/* OH 搜索结果键盘聚焦：↑/↓ 移动时给出清晰焦点环 */
+.ohx-hit:focus-visible,
+.ohx-askoh:focus-visible {
+  outline: 2px solid var(--og-focus-color, var(--accent));
+  outline-offset: -2px;
+  border-radius: var(--og-radius-md);
+}

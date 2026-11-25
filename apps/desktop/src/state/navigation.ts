@@ -106,9 +106,10 @@ export const NAV_REGISTRY: NavEntry[] = [
 
   /* —— 生活 —— */
   { id: "life-card", get name() { return i18n("state.navigation.caf1f095b108"); }, category: "生活", visibility: "core", page: "life", params: { lifeTab: "card" }, keywords: ["校园卡", "余额", "流水", "充值"], get note() { return i18n("state.navigation.082bbf74eb0f"); } },
-  { id: "life-electricity", get name() { return i18n("state.navigation.38c1262f3fc9"); }, category: "生活", visibility: "core", page: "life", params: { lifeTab: "dorm", dormSection: "ele" }, keywords: ["电费", "宿舍", "充值"], get note() { return i18n("state.navigation.a24d34354353"); } },
+  { id: "life-electricity", get name() { return i18n("state.navigation.38c1262f3fc9"); }, category: "生活", visibility: "core", page: "life", params: { lifeTab: "elec" }, keywords: ["电费", "宿舍", "充值"], get note() { return i18n("state.navigation.a24d34354353"); } },
   { id: "life-washer", get name() { return i18n("state.navigation.6acfa1db6a62"); }, category: "生活", visibility: "group", page: "life", params: { lifeTab: "washer" }, keywords: ["洗衣", "烘干", "设备"], get note() { return i18n("state.navigation.52f247fc75da"); } },
-  { id: "life-dorm", get name() { return i18n("state.navigation.3a74de9a9014"); }, category: "生活", visibility: "group", page: "life", params: { lifeTab: "dorm" }, keywords: ["宿舍", "订水"] },
+  { id: "life-dorm", get name() { return i18n("state.navigation.3a74de9a9014"); }, category: "生活", visibility: "group", page: "life", params: { lifeTab: "elec" }, keywords: ["宿舍", "订水"] },
+  { id: "life-water", get name() { return i18n("state.navigation.bb8c939d0fcd"); }, category: "生活", visibility: "group", page: "life", params: { lifeTab: "water" }, keywords: ["宿舍", "订水", "水站"] },
   { id: "life-hygiene", get name() { return i18n("state.navigation.41d497d6e07e"); }, category: "生活", visibility: "group", page: "life", params: { lifeTab: "hygiene" }, keywords: ["卫生", "检查"] },
   { id: "life-network", get name() { return i18n("state.navigation.dd94488f5269"); }, category: "生活", visibility: "group", page: "life", params: { lifeTab: "network" }, keywords: ["校园网", "流量", "上网"] },
   { id: "life-invoice", get name() { return i18n("state.navigation.92341cf02c56"); }, category: "生活", visibility: "group", page: "life", params: { lifeTab: "invoice" }, keywords: ["发票", "财务"] },

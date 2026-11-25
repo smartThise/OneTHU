@@ -671,10 +671,25 @@ export const roam = async (helper: InfoHelper, policy: RoamingPolicy, payload: s
     }
 };
 
+const probeUserDataAlive = async (helper: InfoHelper): Promise<boolean> => {
+    try {
+        const body = await uFetch(`${USER_DATA_URL}?_csrf=${await getCsrfToken()}`);
+        if (isConfirmedLoginPage(body)) return false;
+        const result = JSON.parse(body);
+        if (result?.status === 401 || result?.code === 401) return false;
+        const ryh = result?.object?.ryh;
+        return ryh != null && String(ryh).trim() !== "" && String(ryh) === helper.userId;
+    } catch {
+        return false;
+    }
+};
+
 export const verifyAndReLogin = async (helper: InfoHelper): Promise<boolean> => {
     if (outstandingLoginPromise) {
         await outstandingLoginPromise;
-        return true;
+        /* 接力的登录可能只完成了 id 层，learn/info 目标域未必可用。
+           「别人登好了」不等于「本调用方可以重试」：重新探一次目标域。 */
+        return await probeUserDataAlive(helper);
     }
     try {
         const body = await uFetch(`${USER_DATA_URL}?_csrf=${await getCsrfToken()}`);

@@ -244,6 +244,15 @@ export class AuthRequiredError extends Error {
   }
 }
 
+/** 写请求命中登录页：可以重建会话，但绝不能替调用方重放（重复提交不可回滚）。 */
+export class ReplaySuppressedError extends AuthRequiredError {
+  readonly code = "AUTH_REPLAY_SUPPRESSED";
+  constructor(message = "会话已恢复，请重新提交本次操作") {
+    super(message, { broadcast: false });
+    this.name = "ReplaySuppressedError";
+  }
+}
+
 export interface HttpClientOptions {
   fetch?: FetchLike;
   jar?: CookieJar;
@@ -449,7 +458,7 @@ export class HttpClient {
   async text(
     url: string,
     init: (RequestInit & { direct?: boolean }) = {},
-    options: { validateStatus?: boolean } = {},
+    options: { validateStatus?: boolean; replay?: "safe" | "never" } = {},
   ): Promise<string> {
     // Keep request-local routing evidence: another in-flight request can update
     // lastTarget before this response body has finished reading.
@@ -474,10 +483,21 @@ export class HttpClient {
       }
     }
     if (this.#looksLoggedOut(body, response) && this.#relogin) {
+      /* GET/HEAD 可安全重放；POST/PUT/PATCH/DELETE 默认不重放——响应像登录页
+         无法证明服务端没受理，自动再发一次可能重复提交。写操作只恢复会话，
+         然后让调用方显式决定是否重试。 */
+      const method = String(init.method ?? "GET").toUpperCase();
+      const canReplay = options.replay
+        ? options.replay === "safe"
+        : method === "GET" || method === "HEAD";
       this.#reloginInflight ??= this.#relogin().finally(() => {
         this.#reloginInflight = null;
       });
       await this.#reloginInflight;
+      if (!canReplay) {
+        this.debug?.(`HTTP-REPLAY-SUPPRESSED method=${method}`);
+        throw new ReplaySuppressedError();
+      }
       response = await this.request(url, init);
       body = await response.text();
       this.#recordTextDebug(response, body);
@@ -593,7 +613,8 @@ export class HttpClient {
   }
 
   async postForm(url: string, body: FormData | URLSearchParams): Promise<string> {
-    return this.text(url, { method: "POST", body });
+    /* 兼容旧调用：表单 POST 一律按写操作处理，登录页响应只恢复会话不重放。 */
+    return this.text(url, { method: "POST", body }, { replay: "never" });
   }
 
   /** 学习系统 DataTables 风格 aoData 表单 */
@@ -601,15 +622,27 @@ export class HttpClient {
     const body = new URLSearchParams({
       aoData: JSON.stringify(Object.entries(params).map(([name, value]) => ({ name, value }))),
     });
-    return this.text(url, { method: "POST", body });
+    return this.text(url, { method: "POST", body }, { replay: "safe" });
   }
 
   #looksLoggedOut(body: string, response: Response): boolean {
     if (this.#relogin === null) return false;
-    if (/\/do\/off\/ui\/auth\/login\//.test(response.url || "")) return true;
+    const finalUrl = response.url || "";
+    if (/\/do\/off\/ui\/auth\/login\//.test(finalUrl)) return true;
     // 舞步中止标记（transport 层检测到链被 302 进 webvpn 登录舞）：视为失登，
     // 走 #relogin 单飞重建后重试——绝不各自跳登录舞互烧票据（2026-09-13 定案）
     if (response.headers.get("x-onethu-auth-dance") === "webvpn-login") return true;
-    return /id="sm2publicKey"/.test(body) || /name="i_pass"/.test(body);
+    const marker = /id="sm2publicKey"/.test(body) || /name="i_pass"/.test(body);
+    if (!marker) return false;
+    /* 正文里出现登录字段只是「疑似」：说明页、错误页回显、被代理页面都可能
+       包含这些字面量。必须有登录语境（登录域名、登录 form action）才提交密码，
+       否则误判一次就是一次多余密码 POST。 */
+    const loginContext = /(?:id\.tsinghua\.edu\.cn|oauth\.tsinghua\.edu\.cn|\/f\/login\b|\/do\/off\/ui\/auth\/login\/)/i.test(finalUrl)
+      || /<form\b[^>]*(?:j_spring_security_check|id\.tsinghua\.edu\.cn|\/do\/off\/ui\/auth\/login\/|\/f\/login\b)/i.test(body);
+    if (!loginContext) {
+      this.debug?.("HTTP-AUTH-SUSPECT 登录字段但无登录语境，按普通页面处理");
+      return false;
+    }
+    return true;
   }
 }

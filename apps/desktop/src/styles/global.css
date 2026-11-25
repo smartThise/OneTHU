@@ -535,7 +535,7 @@
   color: var(--text-2);
 }
 
-.field input {
+.field input:not(.og-input-el) {
   height: 38px;
   padding: 0 12px;
   border: 1px solid var(--border); /* 输入类保留描边：§3「描边属于输入语言」 */
@@ -546,13 +546,13 @@
   transition: border-color 100ms ease, background 100ms ease, box-shadow 100ms ease;
 }
 
-.field > input,
+.field > input:not(.og-input-el),
 .field > select {
   width: 100%;
   box-sizing: border-box;
 }
 
-.field input:focus {
+.field input:not(.og-input-el):focus {
   outline: none;
   background: var(--md-sys-color-surface-container-lowest);
   border-color: var(--accent);
@@ -1425,11 +1425,31 @@ select.input:focus {
   gap: 8px;
   padding: 12px 16px;
 }
-.washer-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.washer-type-icon {
+  position: relative;
+  width: 38px;
+  height: 38px;
   flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+.washer-type-icon svg {
+  width: 27px;
+  height: 27px;
+  display: block;
+}
+.washer-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
 }
 .washer-card.is-idle .washer-dot { background: var(--green); }
 .washer-card.is-working .washer-dot {
@@ -6032,14 +6052,14 @@ html.is-sheet-open, html.is-sheet-open body { overflow: hidden; }
 .chip-btn:hover { background: linear-gradient(180deg, var(--glass-tint-top-hover), var(--glass-tint-bottom-hover)); }
 
 /* ---- 输入类 = 玻璃场（tint + hairline；聚焦 rim 转主题色）---- */
-.field input,
+.field input:not(.og-input-el),
 .field select,
 .field textarea {
   background: var(--og-surface-1); /* 实色面（原 30% surface-container 幽灵填充 = 用户点名「透明选择框」的真身） */
   border-color: var(--glass-border);
   box-shadow: inset 0 1px 0 var(--glass-rim-bottom);
 }
-.field input:focus,
+.field input:not(.og-input-el):focus,
 .field select:focus, .field textarea:focus {
   border-color: var(--accent);
   box-shadow: var(--md-sys-focus-ring), inset 0 1px 0 var(--glass-rim-top);
@@ -6301,4 +6321,307 @@ html.is-sheet-open, html.is-sheet-open body { overflow: hidden; }
   background: transparent;
   border: 0;
   box-shadow: none;
+}
+
+/* 待办页收口（2026-11-04）：
+   - 学习/生活两个静态小标题已从 JSX 移除，内容整体上移，未读条不再被顶到 OneShot 下；
+   - 统计卡/入口按钮在“扫描补课 B”里只拿到透明渐变+blur，需补一层主题材质色，
+     否则就是纯背景模糊、和周围玻璃卡不一致；
+   - 课程下拉外层曾被 .og-select 拉成直角；这里补圆角/材质/模糊，内部壳透明。 */
+html:root .task-stat,
+html:root .task-entry {
+  background-color: var(--og-fill-surface);
+}
+html:root .hw-filter-select {
+  border-radius: var(--og-radius-control);
+  overflow: hidden;
+  background: var(--og-fill-surface);
+  border: 1px solid var(--og-line-1);
+  backdrop-filter: var(--og-surface-blur, var(--og-chip-blur, blur(10px)));
+  -webkit-backdrop-filter: var(--og-surface-blur, var(--og-chip-blur, blur(10px)));
+}
+html:root .hw-filter-select .og-input,
+html:root .hw-filter-select .og-select-trigger {
+  border-radius: inherit;
+  background: transparent;
+  border-color: transparent;
+}
+
+/* ── 首页时钟：无卡片背景，像标题一样直接落在白板上 ── */
+html:root .free-item[data-widget="clock"] {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  container-type: inline-size;
+}
+html:root .free-item[data-widget="clock"] :is(.wg-card, .chrome-clock) {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+html:root .free-item[data-widget="clock"] > :first-child { padding: 0; overflow: visible; }
+html:root .free-item[data-widget="clock"] .wg-card { background: transparent; padding: 0; overflow: visible; }
+html:root .free-item[data-widget="clock"] .chrome-clock {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  text-align: left;
+}
+html:root .free-item[data-widget="clock"] .chrome-clock.is-center { align-items: center; text-align: center; gap: 2px; }
+html:root .free-item[data-widget="clock"] .chrome-clock.is-left { align-items: flex-start; text-align: left; gap: 2px; }
+html:root .free-item[data-widget="clock"] .chrome-clock-time {
+  font-family: var(--og-font-ui);
+  font-size: clamp(28px, 14cqw, 64px);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  color: var(--og-content-1);
+}
+html:root .free-item[data-widget="clock"] .chrome-clock-date {
+  font-family: var(--og-font-ui);
+  font-size: clamp(11px, 3cqw, 15px);
+  color: var(--og-content-2);
+  margin: 0;
+}
+html:root .free-item[data-widget="clock"] .is-serif .chrome-clock-time {
+  font-family: Merriweather, Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: clamp(32px, 17cqw, 78px);
+  letter-spacing: -0.055em;
+}
+html:root .free-item[data-widget="clock"] .is-serif .chrome-clock-date {
+  font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif;
+  font-size: clamp(12px, 3.4cqw, 17px);
+  color: var(--og-content-2);
+}
+
+/* ── 今日课程「单节大字」：不按固定档位裁信息，按卡片实际大小排版 ── */
+html:root .free-item[data-widget="next-class"],
+html:root .free-item[data-widget="classes"] { container-type: inline-size; }
+html:root .free-item[data-widget="next-class"] > :first-child,
+html:root .free-item[data-widget="classes"] > :first-child { padding: 12px 14px; }
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus {
+  height: 100%;
+  justify-content: center;
+  gap: clamp(4px, 1.5cqw, 10px);
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-head {
+  flex-wrap: wrap;
+  gap: 2px 10px;
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-left {
+  font-size: clamp(11px, 3cqw, 15px);
+  color: var(--og-content-2);
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-time {
+  font-size: clamp(11px, 3cqw, 15px);
+  color: var(--og-content-2);
+  font-variant-numeric: tabular-nums;
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-name {
+  font-size: clamp(22px, 8.5cqw, 42px);
+  line-height: 1.12;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-where {
+  font-size: clamp(11px, 3cqw, 15px);
+  color: var(--og-content-2);
+}
+/* 自由画布的“单节大字”不再沿用旧档位的隐藏规则。 */
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-time,
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-name,
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-where,
+html:root :is(.free-item[data-widget="next-class"], .free-item[data-widget="classes"]) .next-class-tiered.is-focus .next-class-bar { display: block; }
+
+/* 添加组件：横向样式卡（复用原档位菜单的位置，内容改为真实样式预览） */
+.widget-style-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 8px 24px 14px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.widget-style-scroll::-webkit-scrollbar { display: none; }
+.widget-style-card {
+  flex: 0 0 174px;
+  height: 154px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--og-line-2);
+  border-radius: var(--og-radius-lg);
+  background: var(--og-fill-surface);
+  color: var(--og-content-2);
+  text-align: left;
+  scroll-snap-align: center;
+  overflow: hidden;
+}
+.widget-style-card.is-selected {
+  border-color: var(--og-accent);
+  box-shadow: 0 0 0 2px var(--og-accent-soft-line);
+  color: var(--og-content-1);
+}
+.widget-style-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 112px;
+  flex: 0 0 112px;
+  overflow: hidden;
+  border-radius: var(--og-radius-md);
+  background: var(--og-surface-2);
+  pointer-events: none;
+}
+.widget-style-preview > .wg-card { width: 100%; height: 100%; padding: 6px; overflow: hidden; }
+.widget-style-preview .chrome-clock { height: 100%; width: 100%; justify-content: center; }
+.widget-style-preview .chrome-clock-time { font-size: 30px !important; letter-spacing: -.05em !important; }
+.widget-style-preview .chrome-clock-date { font-size: 10px !important; }
+.widget-style-name {
+  font-size: var(--og-text-label);
+  line-height: 1.3;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* 组件显示风格：列表密度 / 服务入口排列 */
+html:root .homework-carousel-widget.is-compact .hw-carousel { --hw-height: 132px; }
+html:root .notice-density.is-compact .row,
+html:root .notice-density.is-compact .notice-row { padding-top: 4px; padding-bottom: 4px; }
+html:root .home-services-widget.is-rows { grid-template-columns: minmax(0, 1fr); }
+html:root .home-services-widget.is-rows .hs-dock-actions { grid-column: 1; grid-row: 2; justify-self: start; }
+html:root .home-services-widget.is-rows .hs-dock-row { grid-row: 3; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* 文件夹组件：图标网格 / 列表两种风格 */
+html:root .free-folder.is-list .free-folder-grid { display: flex; flex-direction: column; gap: 4px; }
+html:root .free-folder.is-list .free-folder-cell { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 6px 8px; border-radius: var(--og-radius-md); }
+html:root .free-folder.is-list .free-folder-ball { width: 28px; height: 28px; }
+
+/* 添加/样式选择：横向可切换卡流 + 返回 */
+.widget-style-wrap { position: relative; display: flex; align-items: center; min-width: 0; }
+.widget-style-wrap .widget-style-scroll { flex: 1 1 auto; min-width: 0; }
+.widget-style-nav {
+  flex: 0 0 28px; width: 28px; height: 56px; border: 0; border-radius: var(--og-radius-md);
+  background: var(--og-fill-surface); color: var(--og-content-2); font-size: 24px; line-height: 1;
+}
+.widget-style-nav:disabled { opacity: .25; }
+.add-detail-head { position: relative; }
+.add-detail-back {
+  border: 0; background: transparent; color: var(--og-content-2);
+  font-size: var(--og-text-body); padding: 0 0 var(--og-space-1); cursor: pointer;
+}
+.widget-style-preview .chrome-clock.is-serif .chrome-clock-time { font-family: Merriweather, Georgia, "Times New Roman", serif !important; }
+.widget-style-preview .chrome-clock.is-serif .chrome-clock-date { font-family: "Songti SC", "Noto Serif CJK SC", "SimSun", serif !important; }
+.widget-style-preview .chrome-clock.is-center { align-items: center; text-align: center; }
+.widget-style-preview .chrome-clock.is-left { align-items: flex-start; text-align: left; }
+
+/* 样式选择层：右键「显示样式」 */
+.style-picker-mask { position: fixed; inset: 0; z-index: calc(var(--og-z-modal) - 1); background: var(--og-scrim); opacity: .28; }
+.style-picker {
+  position: fixed; left: 50%; bottom: calc(var(--og-space-4) + var(--og-safe-bottom)); transform: translateX(-50%);
+  z-index: var(--og-z-modal); width: min(760px, calc(100vw - 32px));
+  padding: 16px 18px 14px; border: 1px solid var(--og-line-1); border-radius: var(--og-radius-xl);
+  background: var(--og-fill-overlay); color: var(--og-content-1); box-shadow: var(--og-elev-menu);
+  backdrop-filter: var(--og-overlay-blur); -webkit-backdrop-filter: var(--og-overlay-blur);
+}
+.style-picker-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.style-picker-back { border: 0; background: transparent; color: var(--og-content-2); padding: 0; cursor: pointer; }
+.style-picker-kicker { font-size: var(--og-text-micro); color: var(--og-content-3); }
+.style-picker-title { font-size: var(--og-text-title); font-weight: 650; }
+.style-picker-confirm {
+  margin-left: auto; border: 0; border-radius: var(--og-radius-control); padding: 8px 16px;
+  background: var(--og-accent); color: var(--og-accent-on); font-weight: 600; cursor: pointer;
+}
+.style-picker .widget-style-scroll { padding-left: 0; padding-right: 0; }
+@media (max-width: 720px) {
+  .style-picker { width: calc(100vw - 16px); padding: 12px; }
+}
+
+/* 添加组件总览：按屏幕宽度自适应列数，不再固定两列拉长 */
+.add-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.add-grid .add-card { min-width: 0; }
+
+/* 样式选择层内的轮播需要确定高度；否则百分比高度在 auto 容器里会塌成 0。 */
+.style-picker .widget-size-picker { height: 260px; }
+
+/* 宿舍电费：校园卡余额式左右分栏；左主卡突出余额，右侧滚充值流水 */
+.dorm-elec { align-items: start; }
+.dorm-elec .card-col-main,
+.dorm-elec .card-col-side { min-width: 0; }
+.elec-unit { margin-left: 8px; font-size: var(--text-sm); font-weight: 500; color: var(--text-3); letter-spacing: 0; }
+.dorm-water-card { padding: 18px; }
+
+/* 洗衣机：图标与名称同一行，名称稍放大；底部给 OneShot/底栏留滚动余量。 */
+html:root .washer-card .og-card-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+html:root .washer-card .washer-name {
+  font-size: var(--text-md, 16px);
+  line-height: 22px;
+  font-weight: 600;
+}
+.washer-tab { padding-bottom: calc(112px + var(--og-safe-bottom, 0px)); }
+
+/* 电费充值金额框：智能取色的深色模式下 OG 默认 outline 可能被中和成透明，
+   这里给输入壳一个可见的 content-2 混合描边（不是写死颜色，跟随主题）。 */
+.elec-rch-amount .og-input {
+  background: var(--og-surface-2) !important;
+  border: 1px solid color-mix(in srgb, var(--og-content-2) 48%, transparent) !important;
+}
+.elec-rch-amount .og-input.is-focused {
+  border-color: var(--og-accent) !important;
+  box-shadow: var(--og-ring);
+}
+
+/* 洗衣机卡：icon 行只放 icon/名称/状态/收藏；位置与更新时间放下一行，横向占满。 */
+html:root .washer-card .og-card-body {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 2px;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+html:root .washer-card .washer-type-icon {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+html:root .washer-card .washer-main { display: contents; }
+html:root .washer-card .washer-name {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: var(--text-md, 16px);
+  line-height: 22px;
+  font-weight: 600;
+}
+html:root .washer-card .washer-sub {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 0;
+}
+html:root .washer-card .og-card-body > .chip {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: end;
+}
+html:root .washer-card .og-card-body > .collect-star {
+  grid-column: 4;
+  grid-row: 1;
+  justify-self: end;
 }
