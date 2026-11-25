@@ -143,6 +143,20 @@ export default function DevPanel() {
     }
   }, []);
 
+  /* 隐藏徽标后仍保留一个重新打开的入口：Ctrl/Cmd+Shift+D。
+     否则用户只能清 localStorage 或重装，徽标就成了单向门。 */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if (!(e.ctrlKey || e.metaKey) || !e.shiftKey || e.key.toLowerCase() !== "d") return;
+      e.preventDefault();
+      try { window.localStorage.removeItem(HIDE_KEY); } catch { /* ignore */ }
+      setHidden(false);
+      setOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   // 面板打开时轮询快照：日志桥不搞订阅，避免 dev 代码侵入业务模块
   useEffect(() => {
     if (!open) return;
